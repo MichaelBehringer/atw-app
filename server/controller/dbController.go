@@ -11,7 +11,8 @@ var db *sql.DB
 var err error
 
 func InitDB() {
-	db, err = sql.Open("mysql", "dbadmin:raspberry@tcp(127.0.0.1:3306)/ffw")
+	// db, err = sql.Open("mysql", "dbadmin:raspberry@tcp(ffwemding.dynv6.net:3306)/ffw")
+	db, err = sql.Open("mysql", "dbadmin:raspberry@tcp(host.docker.internal:3306)/ffw")
 	if err != nil {
 		panic(err.Error())
 	}
