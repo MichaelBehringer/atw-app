@@ -4,13 +4,12 @@ import (
 	. "ffAPI/controller"
 	. "ffAPI/middleware"
 	. "ffAPI/models"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/static"
-	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/acme/autocert"
 )
 
 func main() {
@@ -48,13 +47,7 @@ func main() {
 
 	router.GET("/file", file)
 
-	m := autocert.Manager{
-		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist("ffwemding.dynv6.net"),
-		Cache:      autocert.DirCache("ressources/autoCertCache"),
-	}
-
-	autotls.RunWithManager(router, &m)
+	router.Run(":8080")
 }
 
 func login(c *gin.Context) {
@@ -174,6 +167,7 @@ func deleteCity(c *gin.Context) {
 }
 
 func file(c *gin.Context) {
+	fmt.Println("im filed drinenn")
 	numbers := [4]int{1, 2, 3, 4}
 	pathZip, fileZip := CreateCityPDFs(numbers[:], 2022)
 	c.Writer.Header().Set("Content-Disposition", "attachment; filename="+fileZip)

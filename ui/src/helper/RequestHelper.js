@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const url = "https://ffwemding.dynv6.net/"
+export const baseUrl = window.location.hostname
+const url = "http://"+baseUrl+"/server/"
 
 export async function doPostRequest(path, param) {
 	return axios.post(url+path, param)
