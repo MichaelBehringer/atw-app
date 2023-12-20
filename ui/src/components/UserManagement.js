@@ -148,7 +148,7 @@ function UserManagement(props) {
       title: 'Benutzername',
       dataIndex: '',
       key: 'username',
-      render: (e) => <Input className="tableElem" value={e.username} onChange={(tx) => {
+      render: (e) => <Input disabled className="tableElem" value={e.username} onChange={(tx) => {
         setUsers(
           users.map((item) => {
             return item.key === e.key ? {...e, username: tx.target.value} : item;

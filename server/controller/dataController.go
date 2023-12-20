@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"database/sql"
 	. "ffAPI/models"
 	"strings"
 
@@ -8,11 +9,27 @@ import (
 )
 
 func GetSearchResult(searchParam SearchParam) []SearchResult {
-	results := ExecuteSQL("select d.DATA_NO , nvl(ac.CITY_NAME,''), DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.TIME_WORK , d.FLASCHEN_FUELLEN , d.FLASCHEN_TUEV , d.MASKEN_REINIGEN , d.MASKEN_PRUEFEN , d.LA_REINIGEN , d.LA_PRUEFEN , d.GERAETE_PRUEFEN , d.GERAETE_REINIGEN, d.BEMERKUNG from atemschutzpflegestelle_data d left join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO where PERS_NO = ? order by d.DATA_NO desc", searchParam.PersNo)
+	results := ExecuteSQL("select d.DATA_NO , nvl(ac.CITY_NAME,''), DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.TIME_WORK , d.FLASCHEN_FUELLEN , d.FLASCHEN_TUEV , d.MASKEN_REINIGEN , d.MASKEN_PRUEFEN , d.LA_REINIGEN , d.LA_PRUEFEN , d.GERAETE_PRUEFEN , d.GERAETE_REINIGEN, d.BEMERKUNG from atemschutzpflegestelle_data d left join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO where PERS_NO = ? and d.state = 'closed' order by d.DATA_NO desc", searchParam.PersNo)
 	searchResults := []SearchResult{}
 	for results.Next() {
 		var searchResult SearchResult
 		results.Scan(&searchResult.DataNo, &searchResult.City, &searchResult.DateWork, &searchResult.TimeWork, &searchResult.FlaschenFuellen, &searchResult.FlaschenTuev, &searchResult.MaskenReinigen, &searchResult.MaskenPruefen, &searchResult.LaReinigen, &searchResult.LaPruefen, &searchResult.GeraetePruefen, &searchResult.GeraeteReinigen, &searchResult.Bemerkung)
+		searchResults = append(searchResults, searchResult)
+	}
+	return searchResults
+}
+
+func GetSearchResultOpen(searchParam SearchParamExtra) []SearchResultOpen {
+	var results *sql.Rows
+	if searchParam.IsExternal {
+		results = ExecuteSQL("select d.DATA_NO, ac.CITY_NAME, DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y') from atemschutzpflegestelle_data d inner join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO inner join pers p on d.CITY_NO=p.CITY_NO where d.state='open' and p.PERS_NO=? order by d.DATA_NO desc", searchParam.PersNo)
+	} else {
+		results = ExecuteSQL("select d.DATA_NO, ac.CITY_NAME, DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y') from atemschutzpflegestelle_data d inner join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO where d.state='open' order by d.DATA_NO desc")
+	}
+	searchResults := []SearchResultOpen{}
+	for results.Next() {
+		var searchResult SearchResultOpen
+		results.Scan(&searchResult.DataNo, &searchResult.City, &searchResult.DateWork)
 		searchResults = append(searchResults, searchResult)
 	}
 	return searchResults

@@ -37,7 +37,7 @@ function MySider(props) {
               <CalendarOutlined style={{fontSize: '1.75em'}} />
             </NavIcon>
             <NavText>
-              Zeiterfassung
+              Erfassung
             </NavText>
           </NavItem>:<></>}
           {isATW(props.loggedFunctionNo)||isAdmin(props.loggedFunctionNo)?<NavItem eventKey="search">

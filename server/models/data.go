@@ -4,6 +4,11 @@ type SearchParam struct {
 	PersNo int `json:"persNo"`
 }
 
+type SearchParamExtra struct {
+	PersNo     int  `json:"persNo"`
+	IsExternal bool `json:"isExternal"`
+}
+
 type SearchResult struct {
 	DataNo          int    `json:"key"`
 	City            string `json:"city"`
@@ -18,6 +23,12 @@ type SearchResult struct {
 	GeraetePruefen  int    `json:"gereatPruefen"`
 	GeraeteReinigen int    `json:"gereatReinigen"`
 	Bemerkung       string `json:"bemerkung"`
+}
+
+type SearchResultOpen struct {
+	DataNo   int    `json:"key"`
+	City     string `json:"city"`
+	DateWork string `json:"dateWork"`
 }
 
 type EntryObj struct {

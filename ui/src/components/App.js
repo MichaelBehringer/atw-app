@@ -30,7 +30,7 @@ function App(props) {
       <MySider loggedFunctionNo={loggedFunctionNo} removeToken={props.removeToken}/>
       <div className="mainContent">
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Home token={props.token} loggedFunctionNo={loggedFunctionNo} loggedPersNo={loggedPersNo}/>} />
           <Route path="/planner" element={<Planner token={props.token} loggedPersNo={loggedPersNo}/>} />
           <Route path="/evaluation" element={<Evaluation token={props.token} loggedFunctionNo={loggedFunctionNo}/>} />
           <Route path="/userManagement" element={<UserManagement token={props.token} loggedFunctionNo={loggedFunctionNo}/>} />

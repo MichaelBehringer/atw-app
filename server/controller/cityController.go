@@ -37,7 +37,8 @@ inner join pers p on
 	d.PERS_NO = p.PERS_NO
 WHERE
 	d.CITY_NO = ?
-	and YEAR(d.DATE_WORK) = ?`
+	and YEAR(d.DATE_WORK) = ?
+	and d.state = 'closed'`
 
 	results := ExecuteSQL(statement, cityNo, year)
 	yearCityResults := []YearCityResult{}
@@ -66,7 +67,8 @@ FROM
 	atemschutzpflegestelle_data d
 WHERE
 	d.CITY_NO = ?
-	and YEAR(d.DATE_WORK) = ?`
+	and YEAR(d.DATE_WORK) = ?
+	and d.state = 'closed'`
 
 	var yearCityResultSum YearCityResult
 	ExecuteSQLRow(statement, cityNo, year).Scan(&yearCityResultSum.FlaschenFuellen, &yearCityResultSum.FlaschenTuev, &yearCityResultSum.MaskenPruefen, &yearCityResultSum.MaskenReinigen, &yearCityResultSum.LaPruefen, &yearCityResultSum.LaReinigen, &yearCityResultSum.GeraetePruefen, &yearCityResultSum.GeraeteReinigen)

@@ -1,4 +1,3 @@
 generated/
-ressources/build
-ressources/autoCertCache
+ressources/pdfs/*.zip
 ffAPI

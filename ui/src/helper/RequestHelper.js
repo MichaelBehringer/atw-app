@@ -1,6 +1,6 @@
 import axios from "axios";
 
-export const baseUrl = window.location.hostname
+export const baseUrl = window.location.hostname + ":" + window.location.port
 const url = "http://"+baseUrl+"/server/"
 
 export async function doPostRequest(path, param) {

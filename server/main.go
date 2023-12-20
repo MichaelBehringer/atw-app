@@ -32,6 +32,7 @@ func main() {
 	router.GET("/cities", AuthUser(), cities)
 	router.GET("/function", AuthUser(), function)
 	router.POST("/search", AuthUser(), search)
+	router.POST("/searchOpen", searchOpen)
 
 	router.PUT("/createEntry", AuthUser(), createEntry)
 	router.DELETE("/deleteEntry", AuthUser(), deleteEntry)
@@ -86,6 +87,13 @@ func search(c *gin.Context) {
 	var searchParam SearchParam
 	c.BindJSON(&searchParam)
 	searchResult := GetSearchResult(searchParam)
+	c.IndentedJSON(http.StatusOK, searchResult)
+}
+
+func searchOpen(c *gin.Context) {
+	var searchParam SearchParamExtra
+	c.BindJSON(&searchParam)
+	searchResult := GetSearchResultOpen(searchParam)
 	c.IndentedJSON(http.StatusOK, searchResult)
 }
 
