@@ -3,6 +3,7 @@ import { isExternal } from "../helper/helpFunctions";
 import { CheckCircleOutlined, EditOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { doPostRequestAuth } from "../helper/RequestHelper";
+import { myToastError } from "../helper/ToastHelper";
 
 function Home(props) {
   const [dataSource, setDataSource] = useState([]);
@@ -34,7 +35,7 @@ function Home(props) {
       title: '',
       dataIndex: '',
       key: 'x',
-      render: (e) => isExternal(props.loggedFunctionNo) ? <EditOutlined onClick={() => console.log(e)} /> : <CheckCircleOutlined onClick={() => console.log(e)}/>
+      render: (e) => isExternal(props.loggedFunctionNo) ? <EditOutlined onClick={() => console.log(e)} /> : <CheckCircleOutlined onClick={() => myToastError("TODO")}/>
     },
   ];
   return (

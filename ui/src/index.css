@@ -12,6 +12,30 @@ code {
     monospace;
 }
 
+
+.imgcontainer {
+  text-align: center;
+  margin: 24px 0 12px 0;
+}
+
+img.logo {
+  border-radius: 50%;
+  width: 250px;
+  border: solid;
+}
+
+
+.loginContainer {
+  padding: 16px;
+}
+
+.loginElement {
+  width: 100%;
+  margin: 8px 0;
+  /* border: 1px solid #ccc;
+  box-sizing: border-box; */
+}
+
 /* .ffButton {
   align-items: center;
   background-clip: padding-box;
@@ -115,5 +139,5 @@ code {
 }
 
 .tableElem {
-  min-width: 100px;
+  min-width: 200px;
 }

@@ -194,7 +194,7 @@ function UserManagement(props) {
           <Button onClick={() => showAGWModal()} className="ffInputFull marginButton" type="primary">Neuer User</Button>
         </Col>
       </Row>
-      <Table className="userManagementTable" pagination={false} scroll={{x: 400}} dataSource={users} columns={columnsAGW} />
+      <Table className="userManagementTable" pagination={true} scroll={{x: 400}} dataSource={users} columns={columnsAGW} />
     </div>
   );
 }
