@@ -38,7 +38,7 @@ func CheckToken(c *gin.Context) AuthPerson {
 	_, claims := ExtractToken(c)
 	username, _ := claims["user"].(string)
 	var person AuthPerson
-	ExecuteSQLRow("SELECT USERNAME, PERS_NO, FUNCTION_NO FROM pers WHERE USERNAME=?", username).Scan(&person.Username, &person.PersNo, &person.FunctionNo)
+	ExecuteSQLRow("SELECT CONCAT(FIRSTNAME, ' ', LASTNAME), PERS_NO, FUNCTION_NO FROM pers WHERE USERNAME=?", username).Scan(&person.Username, &person.PersNo, &person.FunctionNo)
 	return person
 }
 

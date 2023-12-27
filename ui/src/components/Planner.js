@@ -8,7 +8,7 @@ import 'dayjs/locale/de';
 import locale from 'antd/es/date-picker/locale/de_DE';
 import { myToastError, myToastSuccess } from "../helper/ToastHelper";
 import { doGetRequestAuth, doPutRequestAuth } from "../helper/RequestHelper";
-import { getUserToID } from "../helper/helpFunctions";
+import { getUserToID, isAdmin } from "../helper/helpFunctions";
 
 const { TextArea } = Input;
 const options = [];
@@ -215,14 +215,14 @@ function Planner(props) {
 
         >
 
-          <Select value={selectedUser} className="ffInputFull" placeholder={"Atemschutzgerätewart"} options={optionsUsers} onChange={(e) => setSelectedUser(e)} />
+          <Select isDisabled={!isAdmin(props.loggedFunctionNo)} value={selectedUser} className="ffInputFull" placeholder={"Atemschutzgerätewart"} options={optionsUsers} onChange={(e) => setSelectedUser(e)} />
           <TextArea rows={4} value={txtModalNotice} onChange={(e) => setTxtModalNotice(e.target.value)} className="ffInputFull" placeholder={"Bemerkung"} />
           <InputNumber value={txtArbeitszeit} onChange={(e) => setTxtArbeitszeit(e)} min={0} max={10} decimalSeparator={","} className="ffInputFull" placeholder={"Arbeitszeit (h)"} />
           <DatePicker locale={locale} format={dateFormat} value={txtDate} onChange={(e) => setTxtDate(e)} className="ffInputFull" />
         </Modal>
         <Row>
           <Col span={24}>
-            <Select value={selectedUser} className="ffInputFull" placeholder={"Atemschutzgerätewart"} options={optionsUsers} onChange={(e) => setSelectedUser(e)} />
+            <Select isDisabled={!isAdmin(props.loggedFunctionNo)} value={selectedUser} className="ffInputFull" placeholder={"Atemschutzgerätewart"} options={optionsUsers} onChange={(e) => setSelectedUser(e)} />
           </Col>
         </Row>
         <Row>
@@ -237,7 +237,7 @@ function Planner(props) {
             {e.content.map((c) => (
               <Row key={"r" + c.value.title}>
                 <Col key={"c1" + c.value.title} span={12}>
-                  <Tooltip key={"tt" + c.value.title} placement="right" title={c.value.title}><InputNumber key={"txt" + c.value.title} value={c.value.state} onChange={(e) => { c.value.setState(e); if (!e) { c.nr.setState([]); c.value.setState() } }} precision={0} min={0} max={10} className="ffInputFull" placeholder={c.value.title} /></Tooltip>
+                  <Tooltip key={"tt" + c.value.title} placement="right" title={c.value.title}><InputNumber key={"txt" + c.value.title} value={c.value.state} onChange={(e) => { c.value.setState(e) }} precision={0} min={0} max={10} className="ffInputFull" placeholder={c.value.title} /></Tooltip>
                 </Col>
                 <Col key={"c2" + c.value.title} span={12}>
                   <SelectAntd

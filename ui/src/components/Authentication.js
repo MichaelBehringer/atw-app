@@ -35,9 +35,9 @@ function Authentication(props) {
 				<img src="logo192.png" alt="Logo" className="logo" />
 			</div>
 			<div className="loginContainer">
-			<Input value={txtUsername} onChange={(e) => setTxtUsername(e.target.value)} className="ffInputFull loginElement" placeholder={"Benutzername"} />
-			<Input.Password value={txtPassword} onChange={(e) => setTxtPassword(e.target.value)} className="ffInputFull loginElement" placeholder={"Passwort"} />
-			<Button loading={isLoading} onClick={() => handleLogin()} className="ffInputFull loginElement" type="primary">Login</Button>
+			<Input size="large" value={txtUsername} onChange={(e) => setTxtUsername(e.target.value)} className="ffInputFull loginElement" placeholder={"Benutzername"} />
+			<Input.Password size="large"value={txtPassword} onChange={(e) => setTxtPassword(e.target.value)} className="ffInputFull loginElement" placeholder={"Passwort"} />
+			<Button size="large" loading={isLoading} onClick={() => handleLogin()} className="ffInputFull loginElement" type="primary">Login</Button>
 		
 			</div>
 			</div>

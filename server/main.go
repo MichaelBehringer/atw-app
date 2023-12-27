@@ -33,6 +33,7 @@ func main() {
 	router.GET("/function", AuthUser(), function)
 	router.POST("/search", AuthUser(), search)
 	router.POST("/searchOpen", searchOpen)
+	router.POST("/password", AuthUser(), updatePassword)
 
 	router.PUT("/createEntry", AuthUser(), createEntry)
 	router.DELETE("/deleteEntry", AuthUser(), deleteEntry)
@@ -95,6 +96,17 @@ func searchOpen(c *gin.Context) {
 	c.BindJSON(&searchParam)
 	searchResult := GetSearchResultOpen(searchParam)
 	c.IndentedJSON(http.StatusOK, searchResult)
+}
+
+func updatePassword(c *gin.Context) {
+	var person PersonPassword
+	c.BindJSON(&person)
+	success := ResetPassword(person)
+	if success {
+		c.Status(http.StatusOK)
+	} else {
+		c.Status(http.StatusUnauthorized)
+	}
 }
 
 func createEntry(c *gin.Context) {

@@ -64,3 +64,13 @@ func UpdateUser(person Person) bool {
 func DeleteUser(person PersonDelete) {
 	ExecuteDDL("UPDATE pers SET IS_ACTIVE = 0 where PERS_NO = ?", person.PersNo)
 }
+
+func ResetPassword(person PersonPassword) bool {
+	var doesExist bool
+	ExecuteSQLRow("SELECT COUNT(*) FROM pers WHERE PERS_NO=? AND PASSWORD = ?", person.PersNo, person.PasswordOld).Scan(&doesExist)
+	if !doesExist {
+		return false
+	}
+	ExecuteDDL("UPDATE pers SET PASSWORD = ? where PERS_NO = ?", person.Password, person.PersNo)
+	return true
+}

@@ -3,6 +3,7 @@ import React from 'react';
 import SideNav, {NavItem, NavIcon, NavText} from '@trendmicro/react-sidenav';
 import {CalendarOutlined, CompressOutlined, HomeOutlined, LogoutOutlined, SearchOutlined} from '@ant-design/icons';
 import {isAdmin, isATW} from "../helper/helpFunctions";
+import { Avatar } from "antd";
 
 function MySider(props) {
   const navigate = useNavigate();
@@ -56,6 +57,14 @@ function MySider(props) {
               Auswertung
             </NavText>
           </NavItem>:<></>}
+          <NavItem eventKey="account">
+            <NavIcon>
+              <Avatar style={{fontSize: '1.75em'}}>{props.loggedInitials}</Avatar>
+            </NavIcon>
+            <NavText>
+              Account
+            </NavText>
+          </NavItem>
           <NavItem eventKey="logout">
             <NavIcon>
               <LogoutOutlined style={{fontSize: '1.75em'}} />

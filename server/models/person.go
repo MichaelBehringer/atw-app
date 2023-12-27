@@ -36,3 +36,9 @@ type Function struct {
 	FunctionNo   int    `json:"functionNo"`
 	FunctionName string `json:"functionName"`
 }
+
+type PersonPassword struct {
+	PersNo      int    `json:"persNo"`
+	Password    string `json:"password"`
+	PasswordOld string `json:"passwordOld"`
+}
