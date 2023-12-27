@@ -18,6 +18,7 @@ services:
     image: nginx:alpine
     volumes:
      - ./conf.d:/etc/nginx/conf.d
+     - ./certs:/etc/nginx/certs
     ports:
     - "11200:11200"
     depends_on:
