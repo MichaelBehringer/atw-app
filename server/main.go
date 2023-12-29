@@ -44,6 +44,7 @@ func main() {
 	router.POST("/updateUser", AuthUser(), updateUser)
 	router.DELETE("/deleteUser", AuthUser(), deleteUser)
 
+	router.PUT("/createCity", AuthUser(), createCity)
 	router.POST("/updateCity", AuthUser(), updateCity)
 	router.DELETE("/deleteCity", AuthUser(), deleteCity)
 
@@ -184,6 +185,17 @@ func deleteCity(c *gin.Context) {
 	c.BindJSON(&city)
 	DeleteCity(city)
 	c.Status(http.StatusOK)
+}
+
+func createCity(c *gin.Context) {
+	var city City
+	c.BindJSON(&city)
+	success := CreateCity(city)
+	if success {
+		c.Status(http.StatusOK)
+	} else {
+		c.Status(http.StatusBadRequest)
+	}
 }
 
 func file(c *gin.Context) {

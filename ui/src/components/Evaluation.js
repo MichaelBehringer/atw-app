@@ -1,19 +1,32 @@
 import React, {useState} from "react";
-import {Col, Row, Input, Button, Divider, Modal, Table, Popconfirm} from 'antd';
+import {Col, Row, Input, Button, Divider, Modal, Table, Popconfirm, Space} from 'antd';
 import {DeleteOutlined, SaveOutlined} from "@ant-design/icons";
 import {myToastError, myToastSuccess} from "../helper/ToastHelper";
-import {doDeleteRequestAuth, doGetRequestAuth, doGetRequestBlob, doPostRequestAuth} from "../helper/RequestHelper";
+import {doDeleteRequestAuth, doGetRequestAuth, doGetRequestBlob, doPostRequestAuth, doPutRequestAuth} from "../helper/RequestHelper";
 import {useNavigate} from "react-router-dom";
 
 function Evaluation(props) {
   const [isModalFFOpen, setIsModalFFOpen] = useState(false);
   const [cities, setCities] = useState([]);
+  const [txtNewCity, setTxtNewCity] = useState();
   const navigate = useNavigate();
 
   function showFFModal() {
     setIsModalFFOpen(true);
     loadCities();
   };
+
+  function createNewCity() {
+    const params = { name: txtNewCity };
+      doPutRequestAuth("createCity", params, props.token).then((e) => {
+          myToastSuccess('Speichern erfolgreich');
+          loadCities();
+          setTxtNewCity()
+      }, error => {
+        myToastError('Fehler beim speichern aufgetreten/Feuerwehr schon vorhanden');
+      }
+        );
+  }
 
   function handleUpdateFF(e) {
     doPostRequestAuth("updateCity", e, props.token).then((ret) => {
@@ -109,6 +122,10 @@ function Evaluation(props) {
         </Button>
       ]}
       >
+      <Space.Compact style={{ width: '100%' }}>
+        <Input placeholder="Neue Feuerwehr" value={txtNewCity} onChange={(e)=>setTxtNewCity(e.target.value)}/>
+        <Button onClick={() => createNewCity()} type="primary">Anlegen</Button>
+      </Space.Compact>
         <Table scroll={{x: 400}} dataSource={cities} columns={columnsFF} />
       </Modal>
       <Divider orientation="left">Verwalten</Divider>

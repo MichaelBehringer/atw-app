@@ -14,6 +14,8 @@ function Authentication(props) {
 		setIsLoading(true)
 		const params = { username: txtUsername, password: txtPassword };
 		doPostRequest("login", params).then((response) => {
+			setTxtPassword()
+			setTxtUsername()
 			setIsLoading(false)
 			props.setToken(response.data.accessToken);
 			navigate("/")
@@ -24,8 +26,6 @@ function Authentication(props) {
 			}
 			return error;
 		});
-		setTxtPassword()
-		setTxtUsername()
 	}
 
 

@@ -90,3 +90,12 @@ func UpdateCity(city UpdateCityObj) {
 func DeleteCity(city City) {
 	ExecuteDDL("UPDATE atemschutzpflegestelle_cities SET IS_ACTIVE = 0 where CITY_NO = ?", city.CityNo)
 }
+
+func CreateCity(city City) bool {
+	var doesExist bool
+	if doesExist {
+		return false
+	}
+	ExecuteDDL("INSERT INTO atemschutzpflegestelle_cities (CITY_NAME, IS_ACTIVE) VALUES(?, 1)", city.Name)
+	return true
+}
