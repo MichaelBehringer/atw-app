@@ -1,47 +1,85 @@
-import React, { useState } from "react";
-import { Button, Input } from "antd";
-import { doPostRequest } from "../helper/RequestHelper";
-import { myToastError } from "../helper/ToastHelper";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from 'react';
+import { Form, Input, Button, Checkbox, Card, Row, Col, Typography, message } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import { doPostRequest } from '../helper/RequestHelper';
+
+const { Title } = Typography;
 
 function Authentication(props) {
-	const [txtUsername, setTxtUsername] = useState();
-	const [txtPassword, setTxtPassword] = useState();
-	const [isLoading, setIsLoading] = useState(false);
 	const navigate = useNavigate();
+	const [loading, setLoading] = useState(false);
 
-	function handleLogin() {
-		setIsLoading(true)
-		const params = { username: txtUsername, password: txtPassword };
+	function handleLogin(values) {
+		setLoading(true);
+		console.log('Received values of form: ', values);
+		const params = { username: values.username, password: values.password };
 		doPostRequest("login", params).then((response) => {
-			setTxtPassword()
-			setTxtUsername()
-			setIsLoading(false)
+			setLoading(false);
 			props.setToken(response.data.accessToken);
 			navigate("/")
 		}, error => {
-			setIsLoading(false)
+			setLoading(false);
 			if (error.response.status === 401) {
-				myToastError("Benutzername oder Passwort falsch!");
+				message.error('Benutzername oder Passwort falsch!');
 			}
 			return error;
 		});
 	}
 
-
 	return (
-		<div>
-			<div className="imgcontainer">
-				<img src="logo192.png" alt="Logo" className="logo" />
-			</div>
-			<div className="loginContainer">
-			<Input size="large" value={txtUsername} onChange={(e) => setTxtUsername(e.target.value)} className="ffInputFull loginElement" placeholder={"Benutzername"} />
-			<Input.Password size="large"value={txtPassword} onChange={(e) => setTxtPassword(e.target.value)} className="ffInputFull loginElement" placeholder={"Passwort"} />
-			<Button size="large" loading={isLoading} onClick={() => handleLogin()} className="ffInputFull loginElement" type="primary">Login</Button>
-		
-			</div>
-			</div>
+		<div style={{
+			height: '100vh',
+			backgroundImage: 'url(background_login.jpg)',
+			backgroundSize: 'cover',
+			backgroundPosition: 'center',
+			display: 'flex',
+			justifyContent: 'center',
+			alignItems: 'center'
+		}}>
+			<Row justify="center" align="middle">
+				<Col>
+					<Card style={{ minWidth: 300, boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)' }}>
+						<Title level={2} style={{ textAlign: 'center' }}>Login</Title>
+						<Form
+							name="normal_login"
+							className="login-form"
+							initialValues={{ remember: false }}
+							onFinish={handleLogin}
+						>
+							<Form.Item
+								name="username"
+								rules={[{ required: true, message: 'Bitte Benutzernamen angeben!' }]}
+							>
+								<Input prefix={<UserOutlined className="site-form-item-icon" />} placeholder="Benutzername" />
+							</Form.Item>
+							<Form.Item
+								name="password"
+								rules={[{ required: true, message: 'Bitte Passwort angeben!' }]}
+							>
+								<Input
+									prefix={<LockOutlined className="site-form-item-icon" />}
+									type="password"
+									placeholder="Passwort"
+								/>
+							</Form.Item>
+							<Form.Item>
+								<Form.Item name="remember" valuePropName="checked" noStyle>
+									<Checkbox>Angemeldet bleiben</Checkbox>
+								</Form.Item>
+							</Form.Item>
+
+							<Form.Item>
+								<Button type="primary" htmlType="submit" className="login-form-button" loading={loading}>
+									Log in
+								</Button>
+							</Form.Item>
+						</Form>
+					</Card>
+				</Col>
+			</Row>
+		</div>
 	);
-}
+};
 
 export default Authentication;
