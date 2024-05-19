@@ -12,11 +12,10 @@ function Authentication(props) {
 
 	function handleLogin(values) {
 		setLoading(true);
-		console.log('Received values of form: ', values);
 		const params = { username: values.username, password: values.password };
 		doPostRequest("login", params).then((response) => {
 			setLoading(false);
-			props.setToken(response.data.accessToken);
+			props.setToken(response.data.accessToken, values.remember);
 			navigate("/")
 		}, error => {
 			setLoading(false);

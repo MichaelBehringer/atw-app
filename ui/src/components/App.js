@@ -1,6 +1,5 @@
 import {Route, Routes} from "react-router-dom";
 import Planner from "./Planner";
-import 'react-toastify/dist/ReactToastify.css';
 import React, {useEffect, useState} from 'react';
 
 // Be sure to include styles at some point, probably during your bootstraping

@@ -1,40 +1,13 @@
-import {toast} from "react-toastify";
+import { message } from "antd";
 
 export function myToastError(txt) {
-	toast.error(txt, {
-		position: "top-right",
-		autoClose: 3000,
-		hideProgressBar: false,
-		closeOnClick: true,
-		pauseOnHover: true,
-		draggable: true,
-		progress: undefined,
-		theme: "colored",
-	});
+	message.error(txt, 3);
 }
 
 export function myToastSuccess(txt) {
-	toast.success(txt, {
-		position: "top-right",
-		autoClose: 3000,
-		hideProgressBar: false,
-		closeOnClick: true,
-		pauseOnHover: true,
-		draggable: true,
-		progress: undefined,
-		theme: "colored",
-	});
+	message.success(txt, 3);
 }
 
 	export function myToastInfo(txt) {
-		toast.info(txt, {
-			position: "top-right",
-			autoClose: 3000,
-			hideProgressBar: false,
-			closeOnClick: true,
-			pauseOnHover: true,
-			draggable: true,
-			progress: undefined,
-			theme: "colored",
-		});
+		message.info(txt, 3);
 }
