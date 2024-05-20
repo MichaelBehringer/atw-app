@@ -1,81 +1,62 @@
-import {useNavigate} from "react-router-dom";
 import React from 'react';
-import SideNav, {NavItem, NavIcon, NavText} from '@trendmicro/react-sidenav';
-import {CalendarOutlined, CompressOutlined, HomeOutlined, LogoutOutlined, SearchOutlined} from '@ant-design/icons';
-import {isAdmin, isATW} from "../helper/helpFunctions";
-import { Avatar } from "antd";
+import {
+  CalendarOutlined,
+  CompressOutlined,
+  HomeOutlined,
+  SearchOutlined,
+} from '@ant-design/icons';
+import { Layout, Menu } from 'antd';
+import { isATW, isAdmin } from "../helper/helpFunctions";
+import { useNavigate } from 'react-router-dom';
+const { Sider } = Layout;
 
 function MySider(props) {
   const navigate = useNavigate();
 
-  function handleLogout() {
-    props.removeToken();
-  }
   return (
-    <div>
-      <SideNav
-      className='nav-style'
-        onSelect={(selected) => {
-          if(selected==='logout') {
-            handleLogout()
-          } else {
-            navigate(selected)
-          }
-        }}
-      >
-        <SideNav.Toggle />
-        <SideNav.Nav>
-          <NavItem eventKey="">
-            <NavIcon>
-              <HomeOutlined style={{fontSize: '1.75em'}} />
-            </NavIcon>
-            <NavText>
-              Home
-            </NavText>
-          </NavItem>
-          {isATW(props.loggedFunctionNo)||isAdmin(props.loggedFunctionNo)?<NavItem eventKey="planner">
-            <NavIcon>
-              <CalendarOutlined style={{fontSize: '1.75em'}} />
-            </NavIcon>
-            <NavText>
-              Erfassung
-            </NavText>
-          </NavItem>:<></>}
-          {isATW(props.loggedFunctionNo)||isAdmin(props.loggedFunctionNo)?<NavItem eventKey="search">
-            <NavIcon>
-              <SearchOutlined style={{fontSize: '1.75em'}} />
-            </NavIcon>
-            <NavText>
-              Suche
-            </NavText>
-          </NavItem>:<></>}
-          {isAdmin(props.loggedFunctionNo)?<NavItem eventKey="evaluation">
-            <NavIcon>
-              <CompressOutlined style={{fontSize: '1.75em'}} />
-            </NavIcon>
-            <NavText>
-              Auswertung
-            </NavText>
-          </NavItem>:<></>}
-          <NavItem eventKey="account">
-            <NavIcon>
-              <Avatar style={{fontSize: '1.75em'}}>{props.loggedInitials}</Avatar>
-            </NavIcon>
-            <NavText>
-              Account
-            </NavText>
-          </NavItem>
-          <NavItem eventKey="logout">
-            <NavIcon>
-              <LogoutOutlined style={{fontSize: '1.75em'}} />
-            </NavIcon>
-            <NavText>
-              Ausloggen
-            </NavText>
-          </NavItem>
-        </SideNav.Nav>
-      </SideNav>
-    </div>
+    <Sider
+    collapsible
+    collapsed={props.collapsed}
+    onCollapse={(value) => props.setCollapsed(value)}
+    style={{
+      overflow: 'hidden',
+      position: 'fixed',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      height: '100vh',
+    }}
+  >
+    <div className="demo-logo-vertical" />
+    <Menu
+      theme="dark"
+      mode="inline"
+      defaultSelectedKeys={['1']}
+      onClick={(e) => { navigate(e.key) }}
+      items={[
+        {
+          key: 'home',
+          icon: <HomeOutlined />,
+          label: 'Home',
+        },
+        isATW(props.loggedFunctionNo)||isAdmin(props.loggedFunctionNo)?{
+          key: 'planner',
+          icon: <CalendarOutlined />,
+          label: 'Erfassung',
+        }:null,
+        isATW(props.loggedFunctionNo)||isAdmin(props.loggedFunctionNo)?{
+          key: 'search',
+          icon: <SearchOutlined />,
+          label: 'Suche',
+        }:null,
+        isAdmin(props.loggedFunctionNo)?{
+          key: 'evaluation',
+          icon: <CompressOutlined />,
+          label: 'Auswertung',
+        }:null
+      ]}
+    />
+  </Sider>
   );
 }
 
