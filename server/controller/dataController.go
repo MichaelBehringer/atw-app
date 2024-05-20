@@ -3,6 +3,7 @@ package controller
 import (
 	"database/sql"
 	. "ffAPI/models"
+	"fmt"
 	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -17,6 +18,15 @@ func GetSearchResult(searchParam SearchParam) []SearchResult {
 		searchResults = append(searchResults, searchResult)
 	}
 	return searchResults
+}
+
+func GetEntryByID(id string) EntryObj {
+	var entry EntryObj
+	err := ExecuteSQLRow("select d.DATA_NO , d.CITY_NO, DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.TIME_WORK , d.FLASCHEN_FUELLEN , d.FLASCHEN_TUEV , d.MASKEN_REINIGEN , d.MASKEN_PRUEFEN , d.LA_REINIGEN , d.LA_PRUEFEN , d.GERAETE_PRUEFEN , d.GERAETE_REINIGEN, d.BEMERKUNG, n.FLASCHEN_FUELLEN_NR, n.FLASCHEN_TUEV_NR, n.MASKEN_PRUEFEN_NR, n.MASKEN_REINIGEN_NR, n.LA_PRUEFEN_NR, n.LA_REINIGEN_NR, n.GERAETE_PRUEFEN_NR, n.GERAETE_REINIGEN_NR from atemschutzpflegestelle_data d inner join atemschutzpflegestelle_nr n on d.DATA_NO = n.DATA_NO where d.DATA_NO = ? ", id).Scan(
+		&entry.DataNo, &entry.City, &entry.DateWork, &entry.TimeWork, &entry.FlaschenFuellen, &entry.FlaschenTuev, &entry.MaskenReinigen, &entry.MaskenPruefen, &entry.LaReinigen, &entry.LaPruefen, &entry.GeraetePruefen, &entry.GeraeteReinigen, &entry.Bemerkung, &entry.FlaschenFuellenNr, &entry.FlaschenTuevNr, &entry.MaskenPruefenNr, &entry.MaskenReinigenNr, &entry.LaPruefenNr, &entry.LaReinigenNr, &entry.GeraetePruefenNr, &entry.GeraeteReinigenNr)
+	fmt.Println(entry)
+	fmt.Println(err)
+	return entry
 }
 
 func GetSearchResultOpen(searchParam SearchParamExtra) []SearchResultOpen {
