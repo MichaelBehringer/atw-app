@@ -39,11 +39,11 @@ function MySider(props) {
           icon: <HomeOutlined />,
           label: 'Home',
         },
-        isATW(props.loggedFunctionNo)||isAdmin(props.loggedFunctionNo)?{
+        {
           key: 'planner',
           icon: <CalendarOutlined />,
           label: 'Erfassung',
-        }:null,
+        },
         isATW(props.loggedFunctionNo)||isAdmin(props.loggedFunctionNo)?{
           key: 'search',
           icon: <SearchOutlined />,

@@ -8,7 +8,7 @@ import 'dayjs/locale/de';
 import locale from 'antd/es/date-picker/locale/de_DE';
 import { myToastError, myToastSuccess } from "../helper/ToastHelper";
 import { doGetRequestAuth, doPutRequestAuth } from "../helper/RequestHelper";
-import { getUserToID, isAdmin } from "../helper/helpFunctions";
+import { getCityToID, getUserToID, isAdmin, isExternal } from "../helper/helpFunctions";
 
 const { TextArea } = Input;
 const options = [];
@@ -110,15 +110,15 @@ function Planner(props) {
       myToastError('AGW, Feuerwehr, Datum und Arbeitszeit sind Pflichtfelder');
     } else {
       let clean = true
-      for(const field of inputFields) {
-        for(const content of field.content) {
-        if(content.value.state && content.value.state !== content.nr.state.length) {
-          clean=false
+      for (const field of inputFields) {
+        for (const content of field.content) {
+          if (content.value.state && content.value.state !== content.nr.state.length) {
+            clean = false
+          }
         }
       }
-      }
 
-      if(!clean) {
+      if (!clean) {
         myToastError('Anzahl der eingegebenen Nummern passt nicht');
       } else {
         const params = { user: selectedUser.value, city: selectedCity.value, flaschenFuellen: txtFlaschenFuellen, flaschenFuellenNr: txtFlaschenFuellenNr.join(','), flaschenTUEV: txtFlaschenTUEV, flaschenTUEVNr: txtFlaschenTUEVNr.join(','), maskenPruefen: txtMaskenPruefen, maskenPruefenNr: txtMaskenPruefenNr.join(','), maskenReinigen: txtMaskenReinigen, maskenReinigenNr: txtMaskenReinigenNr.join(','), laPruefen: txtLAPruefen, laPruefenNr: txtLAPruefenNr.join(','), laReinigen: txtLAReinigen, laReinigenNr: txtLAReinigenNr.join(','), geraetePruefen: txtGereatePruefen, geraetePruefenNr: txtGereatePruefenNr.join(','), geraeteReinigen: txtGereateReinigen, geraeteReinigenNr: txtGereateReinigenNr.join(','), arbeitszeit: txtArbeitszeit, dateWork: txtDate };
@@ -168,7 +168,8 @@ function Planner(props) {
           res.data.map(row => ({
             persNo: row.persNo,
             firstname: row.firstname,
-            lastname: row.lastname
+            lastname: row.lastname,
+            cityNo: row.cityNo
           }))
         );
       }
@@ -187,12 +188,17 @@ function Planner(props) {
   }, []);
 
   useEffect(() => {
-    if (users.length !== 0) {
+    if (users.length !== 0 && cities.length !== 0) {
       let loggedUser = getUserToID(props.loggedPersNo, users);
       setSelectedUser({ value: loggedUser?.persNo, label: loggedUser?.firstname + " " + loggedUser?.lastname });
+      if (isExternal(props.loggedFunctionNo)) {
+        let loggedCity = getCityToID(loggedUser.cityNo, cities);
+        setSelectedCity({ value: loggedCity?.cityNo, label: loggedCity?.name });
+      }
+
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [users]);
+  }, [users, cities]);
 
   const optionsUsers = users.map(user => ({
     value: user.persNo, label: user.firstname + " " + user.lastname
@@ -220,14 +226,14 @@ function Planner(props) {
           <InputNumber value={txtArbeitszeit} onChange={(e) => setTxtArbeitszeit(e)} min={0} max={10} decimalSeparator={","} className="ffInputFull" placeholder={"Arbeitszeit (h)"} />
           <DatePicker locale={locale} format={dateFormat} value={txtDate} onChange={(e) => setTxtDate(e)} className="ffInputFull" />
         </Modal>
-        <Row>
+        {!isExternal(props.loggedFunctionNo) ? <Row>
           <Col span={24}>
             <Select isDisabled={!isAdmin(props.loggedFunctionNo)} value={selectedUser} className="ffInputFull" placeholder={"Atemschutzgerätewart"} options={optionsUsers} onChange={(e) => setSelectedUser(e)} />
           </Col>
-        </Row>
+        </Row> : <></>}
         <Row>
           <Col span={24}>
-            <Select value={selectedCity} className="ffInputFull" placeholder={"Feuerwehr"} options={optionsCities} onChange={(e) => setSelectedCity(e)} />
+            <Select isDisabled={isExternal(props.loggedFunctionNo)} value={selectedCity} className="ffInputFull" placeholder={"Feuerwehr"} options={optionsCities} onChange={(e) => setSelectedCity(e)} />
           </Col>
         </Row>
 
@@ -259,23 +265,36 @@ function Planner(props) {
           </React.Fragment>
         ))}
 
-        <Divider orientation="left">Arbeitszeit</Divider>
-        <Row>
-          <Col span={12}>
-            <InputNumber value={txtArbeitszeit} onChange={(e) => setTxtArbeitszeit(e)} min={0} max={10} decimalSeparator={","} className="ffInputFull" placeholder={"Arbeitszeit (h)"} />
-          </Col>
-          <Col span={12}>
-            <DatePicker locale={locale} format={dateFormat} value={txtDate} onChange={(e) => setTxtDate(e)} className="ffInputFull" />
-          </Col>
-        </Row>
-        <Row>
-          <Col span={12}>
-            <Button onClick={() => showModal()} className="ffInputFull otherTasksButton">Sonstige Aufgaben</Button>
-          </Col>
-          <Col span={12}>
-            <Button onClick={() => handleSave()} className="ffInputFull" type="primary">Speichern</Button>
-          </Col>
-        </Row>
+        {!isExternal(props.loggedFunctionNo) ? <div>
+          <Divider orientation="left">Arbeitszeit</Divider>
+          <Row>
+            <Col span={12}>
+              <InputNumber value={txtArbeitszeit} onChange={(e) => setTxtArbeitszeit(e)} min={0} max={10} decimalSeparator={","} className="ffInputFull" placeholder={"Arbeitszeit (h)"} />
+            </Col>
+            <Col span={12}>
+              <DatePicker locale={locale} format={dateFormat} value={txtDate} onChange={(e) => setTxtDate(e)} className="ffInputFull" />
+            </Col>
+          </Row>
+          <Row>
+            <Col span={12}>
+              <Button onClick={() => showModal()} className="ffInputFull otherTasksButton">Sonstige Aufgaben</Button>
+            </Col>
+            <Col span={12}>
+              <Button onClick={() => handleSave()} className="ffInputFull" type="primary">Speichern</Button>
+            </Col>
+          </Row>
+        </div> : <div>
+          <Divider orientation="left">Abschluss</Divider>
+          <Row>
+            <Col span={12}>
+              <DatePicker locale={locale} format={dateFormat} value={txtDate} onChange={(e) => setTxtDate(e)} className="ffInputFull" />
+            </Col>
+            <Col span={12}>
+              <Button onClick={() => console.log('anlieferugn starten')} className="ffInputFull" type="primary">Speichern</Button>
+            </Col>
+          </Row>
+
+        </div>}
 
 
       </div> : <div>Daten werden geladen</div>);

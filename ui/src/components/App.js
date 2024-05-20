@@ -90,7 +90,7 @@ function App(props) {
             >
               <Routes>
                 <Route path="/home" element={<Home token={props.token} loggedFunctionNo={loggedFunctionNo} loggedPersNo={loggedPersNo} />} />
-                <Route path="/planner" element={<Planner token={props.token} loggedPersNo={loggedPersNo} />} />
+                <Route path="/planner" element={<Planner token={props.token} loggedFunctionNo={loggedFunctionNo}  loggedPersNo={loggedPersNo} />} />
                 <Route path="/evaluation" element={<Evaluation token={props.token} loggedFunctionNo={loggedFunctionNo} />} />
                 <Route path="/userManagement" element={<UserManagement token={props.token} loggedFunctionNo={loggedFunctionNo} />} />
                 <Route path="/search" element={<Search token={props.token} loggedFunctionNo={loggedFunctionNo} loggedPersNo={loggedPersNo} />} />

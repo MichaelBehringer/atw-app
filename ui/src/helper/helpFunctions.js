@@ -2,6 +2,10 @@ export function getUserToID(userID, users) {
 	return users.find(u => u.persNo === userID)
 }
 
+export function getCityToID(cityID, cities) {
+	return cities.find(u => u.cityNo === cityID)
+}
+
 export function isAdmin(functionID) {
 	return functionID === 2
 }
