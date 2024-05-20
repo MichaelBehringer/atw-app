@@ -29,6 +29,12 @@ function Home(props) {
       key: 'key',
     },
     {
+      title: 'Status',
+      dataIndex: 'state',
+      key: 'state',
+      render: (e) => e==='open'?'Offen':'Abgeschlossen'
+    },
+    {
       title: 'Feuerwehr',
       dataIndex: 'city',
       key: 'city',
@@ -42,7 +48,7 @@ function Home(props) {
       title: '',
       dataIndex: '',
       key: 'x',
-      render: (e) => isExternal(props.loggedFunctionNo) ? <EyeOutlined onClick={() => navigate('/planner/'+e.key)} /> : <CheckCircleOutlined onClick={() => myToastError("TODO")}/>
+      render: (e) => isExternal(props.loggedFunctionNo) ? <EyeOutlined onClick={() => navigate('/planner/'+e.key)} /> : <CheckCircleOutlined onClick={() => navigate('/planner/'+e.key)}/>
     },
   ];
   return (

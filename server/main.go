@@ -35,7 +35,9 @@ func main() {
 	router.POST("/searchOpen", searchOpen)
 	router.POST("/password", AuthUser(), updatePassword)
 
+	router.GET("/entry/:id", AuthUser(), getEntry)
 	router.PUT("/createEntry", AuthUser(), createEntry)
+	router.PUT("/saveEntry", AuthUser(), saveEntry)
 	router.PUT("/createEntryProposal", AuthUser(), createEntryProposal)
 	router.DELETE("/deleteEntry", AuthUser(), deleteEntry)
 	router.POST("/updateEntry", AuthUser(), updateEntry)
@@ -111,10 +113,23 @@ func updatePassword(c *gin.Context) {
 	}
 }
 
+func getEntry(c *gin.Context) {
+	id := c.Param("id")
+	entry := GetEntryByID(id)
+	c.IndentedJSON(http.StatusOK, entry)
+}
+
 func createEntry(c *gin.Context) {
 	var newEntry EntryObj
 	c.BindJSON(&newEntry)
 	CreateEntry(newEntry)
+	c.Status(http.StatusOK)
+}
+
+func saveEntry(c *gin.Context) {
+	var newEntry EntryObj
+	c.BindJSON(&newEntry)
+	SaveEntry(newEntry)
 	c.Status(http.StatusOK)
 }
 

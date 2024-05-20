@@ -29,6 +29,7 @@ type SearchResultOpen struct {
 	DataNo   int    `json:"key"`
 	City     string `json:"city"`
 	DateWork string `json:"dateWork"`
+	State    string `json:"state"`
 }
 
 type EntryObj struct {
@@ -54,4 +55,5 @@ type EntryObj struct {
 	LaPruefenNr       string  `json:"laPruefenNr"`
 	GeraetePruefenNr  string  `json:"geraetePruefenNr"`
 	GeraeteReinigenNr string  `json:"geraeteReinigenNr"`
+	EditId            string  `json:"editId"`
 }

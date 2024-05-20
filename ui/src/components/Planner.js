@@ -9,7 +9,7 @@ import locale from 'antd/es/date-picker/locale/de_DE';
 import { myToastError, myToastSuccess } from "../helper/ToastHelper";
 import { doGetRequestAuth, doPutRequestAuth } from "../helper/RequestHelper";
 import { getCityToID, getUserToID, isAdmin, isExternal } from "../helper/helpFunctions";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 const { TextArea } = Input;
 const options = [];
@@ -23,6 +23,7 @@ for (let i = 1; i < 100; i++) {
 function Planner(props) {
   const { editId } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [txtModalNotice, setTxtModalNotice] = useState("Monatliche Kurzprüfung");
   const dateFormat = 'DD.MM.YYYY';
@@ -88,7 +89,7 @@ function Planner(props) {
     if (txtModalNotice === '' || selectedUser === undefined || txtArbeitszeit === undefined || txtDate === null) {
       myToastError('Bitte alle Felder füllen');
     } else {
-      const params = { user: selectedUser.value, arbeitszeit: txtArbeitszeit, dateWork: txtDate, bemerkung: txtModalNotice };
+      const params = { user: selectedUser.value, arbeitszeit: txtArbeitszeit, dateWork: txtDate.format('YYYY-MM-DD'), bemerkung: txtModalNotice };
       doPutRequestAuth("createExtraEntry", params, props.token).then((e) => {
         if (e.status === 200) {
           myToastSuccess('Speichern erfolgreich');
@@ -124,15 +125,27 @@ function Planner(props) {
       if (!clean) {
         myToastError('Anzahl der eingegebenen Nummern passt nicht');
       } else {
-        const params = { user: selectedUser.value, city: selectedCity.value, flaschenFuellen: txtFlaschenFuellen, flaschenFuellenNr: txtFlaschenFuellenNr.join(','), flaschenTUEV: txtFlaschenTUEV, flaschenTUEVNr: txtFlaschenTUEVNr.join(','), maskenPruefen: txtMaskenPruefen, maskenPruefenNr: txtMaskenPruefenNr.join(','), maskenReinigen: txtMaskenReinigen, maskenReinigenNr: txtMaskenReinigenNr.join(','), laPruefen: txtLAPruefen, laPruefenNr: txtLAPruefenNr.join(','), laReinigen: txtLAReinigen, laReinigenNr: txtLAReinigenNr.join(','), geraetePruefen: txtGereatePruefen, geraetePruefenNr: txtGereatePruefenNr.join(','), geraeteReinigen: txtGereateReinigen, geraeteReinigenNr: txtGereateReinigenNr.join(','), arbeitszeit: txtArbeitszeit, dateWork: txtDate };
-        doPutRequestAuth("createEntry", params, props.token).then((e) => {
-          if (e.status === 200) {
-            myToastSuccess('Speichern erfolgreich');
-            resetFields()
-          } else {
-            myToastError('Fehler beim speichern aufgetreten');
-          }
-        });
+        const params = { user: selectedUser.value, city: selectedCity.value, flaschenFuellen: txtFlaschenFuellen, flaschenFuellenNr: txtFlaschenFuellenNr.join(','), flaschenTUEV: txtFlaschenTUEV, flaschenTUEVNr: txtFlaschenTUEVNr.join(','), maskenPruefen: txtMaskenPruefen, maskenPruefenNr: txtMaskenPruefenNr.join(','), maskenReinigen: txtMaskenReinigen, maskenReinigenNr: txtMaskenReinigenNr.join(','), laPruefen: txtLAPruefen, laPruefenNr: txtLAPruefenNr.join(','), laReinigen: txtLAReinigen, laReinigenNr: txtLAReinigenNr.join(','), geraetePruefen: txtGereatePruefen, geraetePruefenNr: txtGereatePruefenNr.join(','), geraeteReinigen: txtGereateReinigen, geraeteReinigenNr: txtGereateReinigenNr.join(','), arbeitszeit: txtArbeitszeit, dateWork: txtDate.format('YYYY-MM-DD'), editId: editId };
+        if(editId) {
+          doPutRequestAuth("saveEntry", params, props.token).then((e) => {
+            if (e.status === 200) {
+              myToastSuccess('Speichern erfolgreich');
+              resetFields()
+              navigate('/')
+            } else {
+              myToastError('Fehler beim speichern aufgetreten');
+            }
+          });
+        } else {
+          doPutRequestAuth("createEntry", params, props.token).then((e) => {
+            if (e.status === 200) {
+              myToastSuccess('Speichern erfolgreich');
+              resetFields()
+            } else {
+              myToastError('Fehler beim speichern aufgetreten');
+            }
+          });
+        }
       }
     }
   }
@@ -168,7 +181,7 @@ function Planner(props) {
           geraeteReinigen: txtGereateReinigen, 
           geraeteReinigenNr: txtGereateReinigenNr.join(','), 
           arbeitszeit: 0, 
-          dateWork: txtDate };
+          dateWork: txtDate.format('YYYY-MM-DD') };
         doPutRequestAuth("createEntryProposal", params, props.token).then((e) => {
           if (e.status === 200) {
             myToastSuccess('Speichern erfolgreich');
@@ -248,7 +261,6 @@ function Planner(props) {
         doGetRequestAuth('entry/'+editId, props.token).then((res) => {
           setTxtArbeitszeit(res.data.arbeitszeit);
           setTxtDate(dayjs(res.data.dateWork, 'DD.MM.YYYY'));
-          setSelectedUser({ value: res.data.user, label: getUserToID(res.data.user, users)?.firstname + " " + getUserToID(res.data.user, users)?.lastname });
           setSelectedCity({ value: res.data.city, label: getCityToID(res.data.city, cities)?.name });
           setTxtFlaschenFuellen(res.data.flaschenFuellen===0?null:res.data.flaschenFuellen);
           setTxtFlaschenFuellenNr(res.data.flaschenFuellenNr!==""?res.data.flaschenFuellenNr.split(',').map(Number):[]);
@@ -311,7 +323,7 @@ function Planner(props) {
         </Row> : <></>}
         <Row>
           <Col span={24}>
-            <Select isDisabled={isExternal(props.loggedFunctionNo)} value={selectedCity} className="ffInputFull" placeholder={"Feuerwehr"} options={optionsCities} onChange={(e) => setSelectedCity(e)} />
+            <Select isDisabled={isExternal(props.loggedFunctionNo)||editId} value={selectedCity} className="ffInputFull" placeholder={"Feuerwehr"} options={optionsCities} onChange={(e) => setSelectedCity(e)} />
           </Col>
         </Row>
 
@@ -355,10 +367,10 @@ function Planner(props) {
           </Row>
           <Row>
             <Col span={12}>
-              <Button onClick={() => showModal()} className="ffInputFull otherTasksButton">Sonstige Aufgaben</Button>
+              {!editId?<Button onClick={() => showModal()} className="ffInputFull otherTasksButton">Sonstige Aufgaben</Button>:<></>}
             </Col>
             <Col span={12}>
-              <Button onClick={() => handleSave()} className="ffInputFull" type="primary">{editId?'Update':'Anlegen'}</Button>
+              <Button onClick={() => handleSave()} className="ffInputFull" type="primary">{'Speichern'}</Button>
             </Col>
           </Row>
         </div> : <div>
