@@ -36,6 +36,7 @@ func main() {
 	router.POST("/password", AuthUser(), updatePassword)
 
 	router.PUT("/createEntry", AuthUser(), createEntry)
+	router.PUT("/createEntryProposal", AuthUser(), createEntryProposal)
 	router.DELETE("/deleteEntry", AuthUser(), deleteEntry)
 	router.POST("/updateEntry", AuthUser(), updateEntry)
 	router.PUT("/createExtraEntry", AuthUser(), createExtraEntry)
@@ -113,14 +114,15 @@ func updatePassword(c *gin.Context) {
 func createEntry(c *gin.Context) {
 	var newEntry EntryObj
 	c.BindJSON(&newEntry)
-	// fmt.Println(err.Error())
-	// fmt.Println(strings.Split(newEntry.DateWork, "T")[0])
-	// fmt.Println(newEntry.FlaschenFuellen)
 	CreateEntry(newEntry)
 	c.Status(http.StatusOK)
-	// c.IndentedJSON(http.StatusOK, res)
-	// tokenRes := CheckToken(c)
-	// c.IndentedJSON(http.StatusOK, tokenRes)
+}
+
+func createEntryProposal(c *gin.Context) {
+	var newEntry EntryObj
+	c.BindJSON(&newEntry)
+	CreateEntryProposal(newEntry)
+	c.Status(http.StatusOK)
 }
 
 func deleteEntry(c *gin.Context) {

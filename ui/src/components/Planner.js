@@ -134,8 +134,55 @@ function Planner(props) {
     }
   }
 
-  function resetFields() {
-    setSelectedCity(null);
+  function handleExternal() {
+
+      let clean = true
+      for (const field of inputFields) {
+        for (const content of field.content) {
+          if (content.value.state && content.value.state !== content.nr.state.length) {
+            clean = false
+          }
+        }
+      }
+
+      if (!clean) {
+        myToastError('Anzahl der eingegebenen Nummern passt nicht');
+      } else {
+        const params = { user: selectedUser.value, 
+          city: selectedCity.value, 
+          flaschenFuellen: txtFlaschenFuellen, 
+          flaschenFuellenNr: txtFlaschenFuellenNr.join(','), 
+          flaschenTUEV: txtFlaschenTUEV, 
+          flaschenTUEVNr: txtFlaschenTUEVNr.join(','), 
+          maskenPruefen: txtMaskenPruefen, 
+          maskenPruefenNr: txtMaskenPruefenNr.join(','), 
+          maskenReinigen: txtMaskenReinigen, maskenReinigenNr: 
+          txtMaskenReinigenNr.join(','), laPruefen: txtLAPruefen, 
+          laPruefenNr: txtLAPruefenNr.join(','), 
+          laReinigen: txtLAReinigen, laReinigenNr: 
+          txtLAReinigenNr.join(','), geraetePruefen: 
+          txtGereatePruefen, geraetePruefenNr: 
+          txtGereatePruefenNr.join(','), 
+          geraeteReinigen: txtGereateReinigen, 
+          geraeteReinigenNr: txtGereateReinigenNr.join(','), 
+          arbeitszeit: 0, 
+          dateWork: txtDate };
+        doPutRequestAuth("createEntryProposal", params, props.token).then((e) => {
+          if (e.status === 200) {
+            myToastSuccess('Speichern erfolgreich');
+            resetFields(false)
+          } else {
+            myToastError('Fehler beim speichern aufgetreten');
+          }
+        });
+      }
+    
+  }
+
+  function resetFields(resetCity = true) {
+    if(resetCity) {
+      setSelectedCity(null);
+    }
 
     setTxtFlaschenFuellen();
     setTxtFlaschenFuellenNr([]);
@@ -290,7 +337,7 @@ function Planner(props) {
               <DatePicker locale={locale} format={dateFormat} value={txtDate} onChange={(e) => setTxtDate(e)} className="ffInputFull" />
             </Col>
             <Col span={12}>
-              <Button onClick={() => console.log('anlieferugn starten')} className="ffInputFull" type="primary">Speichern</Button>
+              <Button onClick={() => handleExternal()} className="ffInputFull" type="primary">Speichern</Button>
             </Col>
           </Row>
 
