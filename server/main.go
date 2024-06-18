@@ -41,6 +41,7 @@ func main() {
 	router.PUT("/createEntryProposal", AuthUser(), createEntryProposal)
 	router.DELETE("/deleteEntry", AuthUser(), deleteEntry)
 	router.POST("/updateEntry", AuthUser(), updateEntry)
+	router.POST("/updateEntryTree", AuthUser(), updateEntryTree)
 	router.PUT("/createExtraEntry", AuthUser(), createExtraEntry)
 
 	router.PUT("/createUser", AuthUser(), createUser)
@@ -53,7 +54,7 @@ func main() {
 
 	router.GET("/file", file)
 
-	router.Run(":8080")
+	router.Run("localhost:8080")
 }
 
 func login(c *gin.Context) {
@@ -151,6 +152,13 @@ func updateEntry(c *gin.Context) {
 	var updateEntryObj EntryObj
 	c.BindJSON(&updateEntryObj)
 	UpdateEntry(updateEntryObj)
+	c.Status(http.StatusOK)
+}
+
+func updateEntryTree(c *gin.Context) {
+	var updateEntryObjTree EntryObjTree
+	c.BindJSON(&updateEntryObjTree)
+	UpdateEntryTree(updateEntryObjTree)
 	c.Status(http.StatusOK)
 }
 

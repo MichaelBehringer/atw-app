@@ -28,6 +28,7 @@ type SearchResult struct {
 type SearchResultOpen struct {
 	DataNo   int    `json:"key"`
 	City     string `json:"city"`
+	CityNo   int    `json:"cityNo"`
 	DateWork string `json:"dateWork"`
 	State    string `json:"state"`
 }
@@ -55,5 +56,24 @@ type EntryObj struct {
 	LaPruefenNr       string  `json:"laPruefenNr"`
 	GeraetePruefenNr  string  `json:"geraetePruefenNr"`
 	GeraeteReinigenNr string  `json:"geraeteReinigenNr"`
-	EditId            string  `json:"editId"`
+}
+
+type NrObjList struct {
+	FlaschenFuellenNr []string `json:"flaschenFuellenNr"`
+	FlaschenTuevNr    []string `json:"flaschenTUEVNr"`
+	MaskenReinigenNr  []string `json:"maskenReinigenNr"`
+	MaskenPruefenNr   []string `json:"maskenPruefenNr"`
+	LaReinigenNr      []string `json:"laReinigenNr"`
+	LaPruefenNr       []string `json:"laPruefenNr"`
+	GeraetePruefenNr  []string `json:"geraetePruefenNr"`
+	GeraeteReinigenNr []string `json:"geraeteReinigenNr"`
+}
+
+type EntryObjTree struct {
+	DataNo        int      `json:"dataNo"`
+	WorkingPoints []string `json:"workingPoints"`
+	User          int      `json:"user"`
+	City          int      `json:"city"`
+	DateWork      string   `json:"dateWork"`
+	TimeWork      float32  `json:"timeWork"`
 }

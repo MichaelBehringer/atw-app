@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	. "ffAPI/models"
 	"fmt"
+	"slices"
+	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -21,24 +23,22 @@ func GetSearchResult(searchParam SearchParam) []SearchResult {
 
 func GetEntryByID(id string) EntryObj {
 	var entry EntryObj
-	err := ExecuteSQLRow("select d.DATA_NO , d.CITY_NO, DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.TIME_WORK , d.FLASCHEN_FUELLEN , d.FLASCHEN_TUEV , d.MASKEN_REINIGEN , d.MASKEN_PRUEFEN , d.LA_REINIGEN , d.LA_PRUEFEN , d.GERAETE_PRUEFEN , d.GERAETE_REINIGEN, d.BEMERKUNG, n.FLASCHEN_FUELLEN_NR, n.FLASCHEN_TUEV_NR, n.MASKEN_PRUEFEN_NR, n.MASKEN_REINIGEN_NR, n.LA_PRUEFEN_NR, n.LA_REINIGEN_NR, n.GERAETE_PRUEFEN_NR, n.GERAETE_REINIGEN_NR from atemschutzpflegestelle_data d inner join atemschutzpflegestelle_nr n on d.DATA_NO = n.DATA_NO where d.DATA_NO = ? ", id).Scan(
+	ExecuteSQLRow("select d.DATA_NO , d.CITY_NO, DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.TIME_WORK , d.FLASCHEN_FUELLEN , d.FLASCHEN_TUEV , d.MASKEN_REINIGEN , d.MASKEN_PRUEFEN , d.LA_REINIGEN , d.LA_PRUEFEN , d.GERAETE_PRUEFEN , d.GERAETE_REINIGEN, d.BEMERKUNG, n.FLASCHEN_FUELLEN_NR, n.FLASCHEN_TUEV_NR, n.MASKEN_PRUEFEN_NR, n.MASKEN_REINIGEN_NR, n.LA_PRUEFEN_NR, n.LA_REINIGEN_NR, n.GERAETE_PRUEFEN_NR, n.GERAETE_REINIGEN_NR from atemschutzpflegestelle_data d inner join atemschutzpflegestelle_nr n on d.DATA_NO = n.DATA_NO where d.DATA_NO = ? ", id).Scan(
 		&entry.DataNo, &entry.City, &entry.DateWork, &entry.TimeWork, &entry.FlaschenFuellen, &entry.FlaschenTuev, &entry.MaskenReinigen, &entry.MaskenPruefen, &entry.LaReinigen, &entry.LaPruefen, &entry.GeraetePruefen, &entry.GeraeteReinigen, &entry.Bemerkung, &entry.FlaschenFuellenNr, &entry.FlaschenTuevNr, &entry.MaskenPruefenNr, &entry.MaskenReinigenNr, &entry.LaPruefenNr, &entry.LaReinigenNr, &entry.GeraetePruefenNr, &entry.GeraeteReinigenNr)
-	fmt.Println(entry)
-	fmt.Println(err)
 	return entry
 }
 
 func GetSearchResultOpen(searchParam SearchParamExtra) []SearchResultOpen {
 	var results *sql.Rows
 	if searchParam.IsExternal {
-		results = ExecuteSQL("select d.DATA_NO, ac.CITY_NAME, DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.state from atemschutzpflegestelle_data d inner join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO inner join pers p on d.CITY_NO=p.CITY_NO where p.PERS_NO=? order by d.DATA_NO desc", searchParam.PersNo)
+		results = ExecuteSQL("select d.DATA_NO, ac.CITY_NAME, d.CITY_NO, DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.state from atemschutzpflegestelle_data d inner join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO inner join pers p on d.CITY_NO=p.CITY_NO where p.PERS_NO=? order by d.DATA_NO desc", searchParam.PersNo)
 	} else {
-		results = ExecuteSQL("select d.DATA_NO, ac.CITY_NAME, DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.state from atemschutzpflegestelle_data d inner join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO where d.state='open' order by d.DATA_NO desc")
+		results = ExecuteSQL("select d.DATA_NO, ac.CITY_NAME, d.CITY_NO, DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.state from atemschutzpflegestelle_data d inner join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO where d.state='open' order by d.DATA_NO desc")
 	}
 	searchResults := []SearchResultOpen{}
 	for results.Next() {
 		var searchResult SearchResultOpen
-		results.Scan(&searchResult.DataNo, &searchResult.City, &searchResult.DateWork, &searchResult.State)
+		results.Scan(&searchResult.DataNo, &searchResult.City, &searchResult.CityNo, &searchResult.DateWork, &searchResult.State)
 		searchResults = append(searchResults, searchResult)
 	}
 	return searchResults
@@ -51,8 +51,8 @@ func CreateEntry(newEntry EntryObj) {
 }
 
 func SaveEntry(newEntry EntryObj) {
-	ExecuteDDL("UPDATE atemschutzpflegestelle_data SET FLASCHEN_FUELLEN = ?, MASKEN_PRUEFEN = ?, GERAETE_PRUEFEN = ?, PERS_NO = ?, TIME_WORK = ?, DATE_WORK = ?, FLASCHEN_TUEV = ?, MASKEN_REINIGEN = ?, LA_PRUEFEN = ?, LA_REINIGEN = ?, GERAETE_REINIGEN = ?, BEMERKUNG = ?, STATE = 'saved' where DATA_NO = ?", newEntry.FlaschenFuellen, newEntry.MaskenPruefen, newEntry.GeraetePruefen, newEntry.User, newEntry.TimeWork, newEntry.DateWork, newEntry.FlaschenTuev, newEntry.MaskenReinigen, newEntry.LaPruefen, newEntry.LaReinigen, newEntry.GeraeteReinigen, newEntry.Bemerkung, newEntry.EditId)
-	ExecuteDDL("UPDATE atemschutzpflegestelle_nr set FLASCHEN_FUELLEN_NR = ?, FLASCHEN_TUEV_NR = ?, MASKEN_PRUEFEN_NR = ?, MASKEN_REINIGEN_NR = ?, LA_PRUEFEN_NR = ?, LA_REINIGEN_NR = ?, GERAETE_PRUEFEN_NR = ?, GERAETE_REINIGEN_NR = ? WHERE DATA_NO = ?", newEntry.FlaschenFuellenNr, newEntry.FlaschenTuevNr, newEntry.MaskenPruefenNr, newEntry.MaskenReinigenNr, newEntry.LaPruefenNr, newEntry.LaReinigenNr, newEntry.GeraetePruefenNr, newEntry.GeraeteReinigenNr, newEntry.EditId)
+	ExecuteDDL("UPDATE atemschutzpflegestelle_data SET FLASCHEN_FUELLEN = ?, MASKEN_PRUEFEN = ?, GERAETE_PRUEFEN = ?, PERS_NO = ?, TIME_WORK = ?, DATE_WORK = ?, FLASCHEN_TUEV = ?, MASKEN_REINIGEN = ?, LA_PRUEFEN = ?, LA_REINIGEN = ?, GERAETE_REINIGEN = ?, BEMERKUNG = ?, STATE = 'saved' where DATA_NO = ?", newEntry.FlaschenFuellen, newEntry.MaskenPruefen, newEntry.GeraetePruefen, newEntry.User, newEntry.TimeWork, newEntry.DateWork, newEntry.FlaschenTuev, newEntry.MaskenReinigen, newEntry.LaPruefen, newEntry.LaReinigen, newEntry.GeraeteReinigen, newEntry.Bemerkung)
+	ExecuteDDL("UPDATE atemschutzpflegestelle_nr set FLASCHEN_FUELLEN_NR = ?, FLASCHEN_TUEV_NR = ?, MASKEN_PRUEFEN_NR = ?, MASKEN_REINIGEN_NR = ?, LA_PRUEFEN_NR = ?, LA_REINIGEN_NR = ?, GERAETE_PRUEFEN_NR = ?, GERAETE_REINIGEN_NR = ? WHERE DATA_NO = ?", newEntry.FlaschenFuellenNr, newEntry.FlaschenTuevNr, newEntry.MaskenPruefenNr, newEntry.MaskenReinigenNr, newEntry.LaPruefenNr, newEntry.LaReinigenNr, newEntry.GeraetePruefenNr, newEntry.GeraeteReinigenNr)
 }
 
 func CreateEntryProposal(newEntry EntryObj) {
@@ -68,6 +68,67 @@ func DeleteEntry(removeEntry EntryObj) {
 
 func UpdateEntry(updateEntryObj EntryObj) {
 	ExecuteDDL("UPDATE atemschutzpflegestelle_data SET FLASCHEN_FUELLEN = ?, MASKEN_PRUEFEN = ?, GERAETE_PRUEFEN = ?, TIME_WORK = ?, FLASCHEN_TUEV = ?, MASKEN_REINIGEN = ?, LA_PRUEFEN = ?, LA_REINIGEN = ?, GERAETE_REINIGEN = ?, BEMERKUNG = ? where DATA_NO = ?", updateEntryObj.FlaschenFuellen, updateEntryObj.MaskenPruefen, updateEntryObj.GeraeteReinigen, updateEntryObj.TimeWork, updateEntryObj.FlaschenTuev, updateEntryObj.MaskenReinigen, updateEntryObj.LaPruefen, updateEntryObj.LaReinigen, updateEntryObj.GeraeteReinigen, updateEntryObj.Bemerkung, updateEntryObj.DataNo)
+}
+
+func UpdateEntryTree(updateEntryObjTree EntryObjTree) {
+	if slices.Contains(updateEntryObjTree.WorkingPoints, "root") {
+		ExecuteDDL("UPDATE atemschutzpflegestelle_data SET STATE = 'saved', TIME_WORK = ?, DATE_WORK = ?, PERS_NO = ? where DATA_NO = ?", updateEntryObjTree.TimeWork, updateEntryObjTree.DateWork, updateEntryObjTree.User, updateEntryObjTree.DataNo)
+		fmt.Println("Komplett abgearbeitet")
+	} else {
+		newEntry := NrObjList{}
+		//var newEntry EntryObj
+		for _, element := range updateEntryObjTree.WorkingPoints {
+			if strings.Contains(element, "#") {
+				splitElement := strings.Split(element, "#")
+				elementKey := splitElement[0]
+				elementNr := splitElement[1]
+
+				var column string
+
+				switch elementKey {
+				case "ff":
+					newEntry.FlaschenFuellenNr = append(newEntry.FlaschenFuellenNr, elementNr)
+					column = "FLASCHEN_FUELLEN"
+				case "ft":
+					newEntry.FlaschenTuevNr = append(newEntry.FlaschenTuevNr, elementNr)
+					column = "FLASCHEN_TUEV"
+				case "mp":
+					newEntry.MaskenPruefenNr = append(newEntry.MaskenPruefenNr, elementNr)
+					column = "MASKEN_PRUEFEN"
+				case "mr":
+					newEntry.MaskenReinigenNr = append(newEntry.MaskenReinigenNr, elementNr)
+					column = "MASKEN_REINIGEN"
+				case "lp":
+					newEntry.LaPruefenNr = append(newEntry.LaPruefenNr, elementNr)
+					column = "LA_PRUEFEN"
+				case "lr":
+					newEntry.LaReinigenNr = append(newEntry.LaReinigenNr, elementNr)
+					column = "LA_REINIGEN"
+				case "gp":
+					newEntry.GeraetePruefenNr = append(newEntry.GeraetePruefenNr, elementNr)
+					column = "GERAETE_PRUEFEN"
+				case "gr":
+					newEntry.GeraeteReinigenNr = append(newEntry.GeraeteReinigenNr, elementNr)
+					column = "GERAETE_REINIGEN"
+				}
+
+				var nrList string
+				columnNr := column + "_NR"
+				ExecuteSQLRow("SELECT "+columnNr+" FROM atemschutzpflegestelle_nr WHERE DATA_NO=?", updateEntryObjTree.DataNo).Scan(&nrList)
+				stringArray := strings.Split(nrList, ",")
+				var filteredArray []string
+
+				for _, v := range stringArray {
+					if v != elementNr {
+						filteredArray = append(filteredArray, v)
+					}
+				}
+				ExecuteSQLRow("UPDATE atemschutzpflegestelle_nr set "+columnNr+"=? WHERE DATA_NO=?", strings.Join(filteredArray, ","), updateEntryObjTree.DataNo)
+				ExecuteSQLRow("UPDATE atemschutzpflegestelle_data set "+column+"=? WHERE DATA_NO=?", len(filteredArray), updateEntryObjTree.DataNo)
+			}
+		}
+		CreateEntry(EntryObj{City: updateEntryObjTree.City, User: updateEntryObjTree.User, DateWork: updateEntryObjTree.DateWork, TimeWork: updateEntryObjTree.TimeWork, FlaschenFuellen: len(newEntry.FlaschenFuellenNr), FlaschenTuev: len(newEntry.FlaschenTuevNr), MaskenReinigen: len(newEntry.MaskenReinigenNr), MaskenPruefen: len(newEntry.MaskenPruefenNr), LaReinigen: len(newEntry.LaReinigenNr), LaPruefen: len(newEntry.LaPruefenNr), GeraetePruefen: len(newEntry.GeraetePruefenNr), GeraeteReinigen: len(newEntry.GeraeteReinigenNr), FlaschenFuellenNr: strings.Join(newEntry.FlaschenFuellenNr, ","), FlaschenTuevNr: strings.Join(newEntry.FlaschenTuevNr, ","), MaskenReinigenNr: strings.Join(newEntry.MaskenReinigenNr, ","), MaskenPruefenNr: strings.Join(newEntry.MaskenPruefenNr, ","), LaReinigenNr: strings.Join(newEntry.LaReinigenNr, ","), LaPruefenNr: strings.Join(newEntry.LaPruefenNr, ","), GeraetePruefenNr: strings.Join(newEntry.GeraetePruefenNr, ","), GeraeteReinigenNr: strings.Join(newEntry.GeraeteReinigenNr, ",")})
+	}
 }
 
 func CreateExtraEntry(updateEntryObj EntryObj) {
