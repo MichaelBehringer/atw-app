@@ -77,6 +77,8 @@ function Home(props) {
       doSearch()
       setIsModalVisible(false);
       setCheckedKeys([]);
+      setTxtArbeitszeit()
+      setTxtDate(dayjs())
       setTreeData([{ title: 'Auftrag', key: 'root' }]);
     });
   };

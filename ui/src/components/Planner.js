@@ -162,6 +162,8 @@ function Planner(props) {
 
       if (!clean) {
         myToastError('Anzahl der eingegebenen Nummern passt nicht');
+      } else if (txtDate === null) {
+        myToastError('Datum ist ein Pflichtfelder');
       } else {
         const params = { user: selectedUser.value, 
           city: selectedCity.value, 

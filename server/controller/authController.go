@@ -18,7 +18,7 @@ func DoLogin(login Login, c *gin.Context) AcessToken {
 	)
 
 	var isAllowed bool
-	ExecuteSQLRow("SELECT COUNT(*) FROM pers WHERE USERNAME=? AND PASSWORD=?", login.Username, login.Password).Scan(&isAllowed)
+	ExecuteSQLRow("SELECT COUNT(*) FROM pers WHERE UPPER(USERNAME)=UPPER(?) AND PASSWORD=?", login.Username, login.Password).Scan(&isAllowed)
 	if !isAllowed {
 		c.AbortWithStatus(http.StatusUnauthorized)
 	}
@@ -58,4 +58,18 @@ func parseToken(tokenStr string) (bool, jwt.MapClaims) {
 		return []byte("my_secret_key"), nil
 	})
 	return (err == nil && tkn.Valid), claims
+}
+
+func ntfyNoticeAnlieferung(topic string, source string, message string) {
+	req, _ := http.NewRequest("POST", "https://ntfy.sh/"+topic,
+		strings.NewReader("Bestandteile:"+message))
+	req.Header.Set("Title", source+" - Anlieferung")
+	http.DefaultClient.Do(req)
+}
+
+func ntfyNoticeBearbeitung(topic string, header string, message string) {
+	req, _ := http.NewRequest("POST", "https://ntfy.sh/Info_"+topic,
+		strings.NewReader(message))
+	req.Header.Set("Title", header)
+	http.DefaultClient.Do(req)
 }
