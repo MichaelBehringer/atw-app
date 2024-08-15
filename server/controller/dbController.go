@@ -12,7 +12,7 @@ var err error
 
 func InitDB() {
 	// db, err = sql.Open("mysql", "dbadmin:raspberry@tcp(ffwemding.dynv6.net:3306)/ffw")
-	db, err = sql.Open("mysql", "dbadmin:raspberry@tcp(host.docker.internal:3306)/ffw")
+	db, err = sql.Open("mysql", "ffwadmin:gnidmewff@tcp(host.docker.internal:3306)/ffw")
 	if err != nil {
 		panic(err.Error())
 	}
