@@ -126,7 +126,7 @@ function Planner(props) {
         myToastError('Anzahl der eingegebenen Nummern passt nicht');
       } else {
         const params = { user: selectedUser.value, city: selectedCity.value, flaschenFuellen: txtFlaschenFuellen, flaschenFuellenNr: txtFlaschenFuellenNr.join(','), flaschenTUEV: txtFlaschenTUEV, flaschenTUEVNr: txtFlaschenTUEVNr.join(','), maskenPruefen: txtMaskenPruefen, maskenPruefenNr: txtMaskenPruefenNr.join(','), maskenReinigen: txtMaskenReinigen, maskenReinigenNr: txtMaskenReinigenNr.join(','), laPruefen: txtLAPruefen, laPruefenNr: txtLAPruefenNr.join(','), laReinigen: txtLAReinigen, laReinigenNr: txtLAReinigenNr.join(','), geraetePruefen: txtGereatePruefen, geraetePruefenNr: txtGereatePruefenNr.join(','), geraeteReinigen: txtGereateReinigen, geraeteReinigenNr: txtGereateReinigenNr.join(','), arbeitszeit: txtArbeitszeit, dateWork: txtDate.format('YYYY-MM-DD'), editId: editId };
-        if(editId) {
+        if (editId) {
           doPutRequestAuth("saveEntry", params, props.token).then((e) => {
             if (e.status === 200) {
               myToastSuccess('Speichern erfolgreich');
@@ -151,53 +151,53 @@ function Planner(props) {
   }
 
   function handleExternal() {
-      let clean = true
-      for (const field of inputFields) {
-        for (const content of field.content) {
-          if (content.value.state && content.value.state !== content.nr.state.length) {
-            clean = false
-          }
+    let clean = true
+    for (const field of inputFields) {
+      for (const content of field.content) {
+        if (content.value.state && content.value.state !== content.nr.state.length) {
+          clean = false
         }
       }
+    }
 
-      if (!clean) {
-        myToastError('Anzahl der eingegebenen Nummern passt nicht');
-      } else if (txtDate === null) {
-        myToastError('Datum ist ein Pflichtfelder');
-      } else {
-        const params = { user: selectedUser.value, 
-          city: selectedCity.value, 
-          flaschenFuellen: txtFlaschenFuellen, 
-          flaschenFuellenNr: txtFlaschenFuellenNr.join(','), 
-          flaschenTUEV: txtFlaschenTUEV, 
-          flaschenTUEVNr: txtFlaschenTUEVNr.join(','), 
-          maskenPruefen: txtMaskenPruefen, 
-          maskenPruefenNr: txtMaskenPruefenNr.join(','), 
-          maskenReinigen: txtMaskenReinigen, maskenReinigenNr: 
-          txtMaskenReinigenNr.join(','), laPruefen: txtLAPruefen, 
-          laPruefenNr: txtLAPruefenNr.join(','), 
-          laReinigen: txtLAReinigen, laReinigenNr: 
-          txtLAReinigenNr.join(','), geraetePruefen: 
-          txtGereatePruefen, geraetePruefenNr: 
-          txtGereatePruefenNr.join(','), 
-          geraeteReinigen: txtGereateReinigen, 
-          geraeteReinigenNr: txtGereateReinigenNr.join(','), 
-          arbeitszeit: 0, 
-          dateWork: txtDate.format('YYYY-MM-DD') };
-        doPutRequestAuth("createEntryProposal", params, props.token).then((e) => {
-          if (e.status === 200) {
-            myToastSuccess('Speichern erfolgreich');
-            resetFields(false)
-          } else {
-            myToastError('Fehler beim speichern aufgetreten');
-          }
-        });
-      }
-    
+    if (!clean) {
+      myToastError('Anzahl der eingegebenen Nummern passt nicht');
+    } else if (txtDate === null) {
+      myToastError('Datum ist ein Pflichtfelder');
+    } else {
+      const params = {
+        user: selectedUser.value,
+        city: selectedCity.value,
+        flaschenFuellen: txtFlaschenFuellen,
+        flaschenFuellenNr: txtFlaschenFuellenNr.join(','),
+        flaschenTUEV: txtFlaschenTUEV,
+        flaschenTUEVNr: txtFlaschenTUEVNr.join(','),
+        maskenPruefen: txtMaskenPruefen,
+        maskenPruefenNr: txtMaskenPruefenNr.join(','),
+        maskenReinigen: txtMaskenReinigen, maskenReinigenNr:
+          txtMaskenReinigenNr.join(','), laPruefen: txtLAPruefen,
+        laPruefenNr: txtLAPruefenNr.join(','),
+        laReinigen: txtLAReinigen, laReinigenNr:
+          txtLAReinigenNr.join(','), geraetePruefen:
+          txtGereatePruefen, geraetePruefenNr:
+          txtGereatePruefenNr.join(','),
+        geraeteReinigen: txtGereateReinigen,
+        geraeteReinigenNr: txtGereateReinigenNr.join(','),
+        arbeitszeit: 0,
+        dateWork: txtDate.format('YYYY-MM-DD')
+      };
+      doPutRequestAuth("createEntryProposal", params, props.token).then((e) => {
+        myToastSuccess('Speichern erfolgreich');
+        resetFields(false)
+      }).catch((e) => {
+        myToastError('Fehler beim speichern aufgetreten');
+      });
+    }
+
   }
 
   function resetFields(resetCity = true) {
-    if(resetCity) {
+    if (resetCity) {
       setSelectedCity(null);
     }
 
@@ -259,27 +259,27 @@ function Planner(props) {
         let loggedCity = getCityToID(loggedUser.cityNo, cities);
         setSelectedCity({ value: loggedCity?.cityNo, label: loggedCity?.name });
       }
-      if(editId) {
-        doGetRequestAuth('entry/'+editId, props.token).then((res) => {
+      if (editId) {
+        doGetRequestAuth('entry/' + editId, props.token).then((res) => {
           setTxtArbeitszeit(res.data.arbeitszeit);
           setTxtDate(dayjs(res.data.dateWork, 'DD.MM.YYYY'));
           setSelectedCity({ value: res.data.city, label: getCityToID(res.data.city, cities)?.name });
-          setTxtFlaschenFuellen(res.data.flaschenFuellen===0?null:res.data.flaschenFuellen);
-          setTxtFlaschenFuellenNr(res.data.flaschenFuellenNr!==""?res.data.flaschenFuellenNr.split(',').map(Number):[]);
-          setTxtFlaschenTUEV(res.data.flaschenTUEV===0?null:res.data.flaschenTUEV);
-          setTxtFlaschenTUEVNr(res.data.flaschenTUEVNr!==""?res.data.flaschenTUEVNr.split(',').map(Number):[]); 
-          setTxtMaskenPruefen(res.data.maskenPruefen===0?null:res.data.maskenPruefen);
-          setTxtMaskenPruefenNr(res.data.maskenPruefenNr!==""?res.data.maskenPruefenNr.split(',').map(Number):[]);
-          setTxtMaskenReinigen(res.data.maskenReinigen===0?null:res.data.maskenReinigen);
-          setTxtMaskenReinigenNr(res.data.maskenReinigenNr!==""?res.data.maskenReinigenNr.split(',').map(Number):[]);
-          setTxtLAPruefen(res.data.laPruefen===0?null:res.data.laPruefen);
-          setTxtLAPruefenNr(res.data.laPruefenNr!==""?res.data.laPruefenNr.split(',').map(Number):[]);
-          setTxtLAReinigen(res.data.laReinigen===0?null:res.data.laReinigen);
-          setTxtLAReinigenNr(res.data.laReinigenNr!==""?res.data.laReinigenNr.split(',').map(Number):[]);
-          setTxtGereatePruefen(res.data.geraetePruefen===0?null:res.data.geraetePruefen);
-          setTxtGereatePruefenNr(res.data.geraetePruefenNr!==""?res.data.geraetePruefenNr.split(',').map(Number):[]);
-          setTxtGereateReinigen(res.data.geraeteReinigen===0?null:res.data.geraeteReinigen);
-          setTxtGereateReinigenNr(res.data.geraeteReinigenNr!==""?res.data.geraeteReinigenNr.split(',').map(Number):[]);
+          setTxtFlaschenFuellen(res.data.flaschenFuellen === 0 ? null : res.data.flaschenFuellen);
+          setTxtFlaschenFuellenNr(res.data.flaschenFuellenNr !== "" ? res.data.flaschenFuellenNr.split(',').map(Number) : []);
+          setTxtFlaschenTUEV(res.data.flaschenTUEV === 0 ? null : res.data.flaschenTUEV);
+          setTxtFlaschenTUEVNr(res.data.flaschenTUEVNr !== "" ? res.data.flaschenTUEVNr.split(',').map(Number) : []);
+          setTxtMaskenPruefen(res.data.maskenPruefen === 0 ? null : res.data.maskenPruefen);
+          setTxtMaskenPruefenNr(res.data.maskenPruefenNr !== "" ? res.data.maskenPruefenNr.split(',').map(Number) : []);
+          setTxtMaskenReinigen(res.data.maskenReinigen === 0 ? null : res.data.maskenReinigen);
+          setTxtMaskenReinigenNr(res.data.maskenReinigenNr !== "" ? res.data.maskenReinigenNr.split(',').map(Number) : []);
+          setTxtLAPruefen(res.data.laPruefen === 0 ? null : res.data.laPruefen);
+          setTxtLAPruefenNr(res.data.laPruefenNr !== "" ? res.data.laPruefenNr.split(',').map(Number) : []);
+          setTxtLAReinigen(res.data.laReinigen === 0 ? null : res.data.laReinigen);
+          setTxtLAReinigenNr(res.data.laReinigenNr !== "" ? res.data.laReinigenNr.split(',').map(Number) : []);
+          setTxtGereatePruefen(res.data.geraetePruefen === 0 ? null : res.data.geraetePruefen);
+          setTxtGereatePruefenNr(res.data.geraetePruefenNr !== "" ? res.data.geraetePruefenNr.split(',').map(Number) : []);
+          setTxtGereateReinigen(res.data.geraeteReinigen === 0 ? null : res.data.geraeteReinigen);
+          setTxtGereateReinigenNr(res.data.geraeteReinigenNr !== "" ? res.data.geraeteReinigenNr.split(',').map(Number) : []);
         });
       } else {
         resetFields(false);
@@ -325,7 +325,7 @@ function Planner(props) {
         </Row> : <></>}
         <Row>
           <Col span={24}>
-            <Select isDisabled={isExternal(props.loggedFunctionNo)||editId} value={selectedCity} className="ffInputFull" placeholder={"Feuerwehr"} options={optionsCities} onChange={(e) => setSelectedCity(e)} />
+            <Select isDisabled={isExternal(props.loggedFunctionNo) || editId} value={selectedCity} className="ffInputFull" placeholder={"Feuerwehr"} options={optionsCities} onChange={(e) => setSelectedCity(e)} />
           </Col>
         </Row>
 
@@ -335,7 +335,7 @@ function Planner(props) {
             {e.content.map((c) => (
               <Row key={"r" + c.value.title}>
                 <Col key={"c1" + c.value.title} span={12}>
-                  <Tooltip key={"tt" + c.value.title} placement="right" title={c.value.title}><InputNumber disabled={isExternal(props.loggedFunctionNo)&&editId} key={"txt" + c.value.title} value={c.value.state} onChange={(e) => { c.value.setState(e) }} precision={0} min={0} max={10} className="ffInputFull" placeholder={c.value.title} /></Tooltip>
+                  <Tooltip key={"tt" + c.value.title} placement="right" title={c.value.title}><InputNumber disabled={isExternal(props.loggedFunctionNo) && editId} key={"txt" + c.value.title} value={c.value.state} onChange={(e) => { c.value.setState(e) }} precision={0} min={0} max={10} className="ffInputFull" placeholder={c.value.title} /></Tooltip>
                 </Col>
                 <Col key={"c2" + c.value.title} span={12}>
                   <SelectAntd
@@ -349,7 +349,7 @@ function Planner(props) {
                       width: '100%',
                       color: c.value.state !== c.nr.state.length ? 'red' : 'green'
                     }}
-                    disabled={!c.value.state || (isExternal(props.loggedFunctionNo)&&editId)}
+                    disabled={!c.value.state || (isExternal(props.loggedFunctionNo) && editId)}
                   />
                 </Col>
               </Row>
@@ -369,7 +369,7 @@ function Planner(props) {
           </Row>
           <Row>
             <Col span={12}>
-              {!editId?<Button onClick={() => showModal()} className="ffInputFull otherTasksButton">Sonstige Aufgaben</Button>:<></>}
+              {!editId ? <Button onClick={() => showModal()} className="ffInputFull otherTasksButton">Sonstige Aufgaben</Button> : <></>}
             </Col>
             <Col span={12}>
               <Button onClick={() => handleSave()} className="ffInputFull" type="primary">{'Speichern'}</Button>
@@ -382,7 +382,7 @@ function Planner(props) {
               <DatePicker disabled={editId} locale={locale} format={dateFormat} value={txtDate} onChange={(e) => setTxtDate(e)} className="ffInputFull" />
             </Col>
             <Col span={12}>
-              <Button disabled={editId} onClick={() => handleExternal()} className="ffInputFull" type="primary">{editId?'Update':'Anlegen'}</Button>
+              <Button disabled={editId} onClick={() => handleExternal()} className="ffInputFull" type="primary">{editId ? 'Update' : 'Anlegen'}</Button>
             </Col>
           </Row>
 

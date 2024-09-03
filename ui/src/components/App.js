@@ -18,7 +18,7 @@ function App(props) {
   const [loggedPersNo, setLoggedPersNo] = useState();
   const [loggedFunctionNo, setLoggedFunctionNo] = useState();
   const [loggedInitials, setLoggedInitials] = useState();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [isChangePasswordModalVisible, setIsChangePasswordModalVisible] = useState(false); // State for modal visibility
 
   const {

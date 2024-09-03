@@ -137,6 +137,10 @@ func saveEntry(c *gin.Context) {
 func createEntryProposal(c *gin.Context) {
 	var newEntry EntryObj
 	c.BindJSON(&newEntry)
+	if newEntry.FlaschenFuellen == 0 && newEntry.FlaschenTuev == 0 && newEntry.GeraetePruefen == 0 && newEntry.GeraeteReinigen == 0 && newEntry.MaskenPruefen == 0 && newEntry.MaskenReinigen == 0 && newEntry.LaPruefen == 0 && newEntry.LaReinigen == 0 {
+		c.Status(http.StatusBadRequest)
+		return
+	}
 	CreateEntryProposal(newEntry)
 	c.Status(http.StatusOK)
 }
