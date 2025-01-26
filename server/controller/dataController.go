@@ -11,7 +11,7 @@ import (
 )
 
 func GetSearchResult(searchParam SearchParam) []SearchResult {
-	results := ExecuteSQL("select d.DATA_NO , nvl(ac.CITY_NAME,''), DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.TIME_WORK , d.FLASCHEN_FUELLEN , d.FLASCHEN_TUEV , d.MASKEN_REINIGEN , d.MASKEN_PRUEFEN , d.LA_REINIGEN , d.LA_PRUEFEN , d.GERAETE_PRUEFEN , d.GERAETE_REINIGEN, d.BEMERKUNG from atemschutzpflegestelle_data d left join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO where PERS_NO = ? and d.state = 'saved' order by d.DATA_NO desc", searchParam.PersNo)
+	results := ExecuteSQL("select d.DATA_NO , ifnull(ac.CITY_NAME, ''), DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.TIME_WORK , d.FLASCHEN_FUELLEN , d.FLASCHEN_TUEV , d.MASKEN_REINIGEN , d.MASKEN_PRUEFEN , d.LA_REINIGEN , d.LA_PRUEFEN , d.GERAETE_PRUEFEN , d.GERAETE_REINIGEN, d.BEMERKUNG from atemschutzpflegestelle_data d left join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO where PERS_NO = ? and d.state = 'saved' order by d.DATA_NO desc", searchParam.PersNo)
 	searchResults := []SearchResult{}
 	for results.Next() {
 		var searchResult SearchResult
