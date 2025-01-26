@@ -42,3 +42,10 @@ type PersonPassword struct {
 	Password    string `json:"password"`
 	PasswordOld string `json:"passwordOld"`
 }
+
+type PersonWorktimeResult struct {
+	Firstname string  `json:"firstname"`
+	Lastname  string  `json:"lastname"`
+	PersNo    int     `json:"persNo"`
+	TimeWork  float32 `json:"timeWork"`
+}

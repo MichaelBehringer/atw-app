@@ -77,7 +77,7 @@ WHERE
 }
 
 func GetCityname(cityNo int) string {
-	statement := "select ac.CITY_NAME from atemschutzpflegestelle_cities ac where ac.CITY_NO = ?"
+	statement := "select REPLACE(ac.CITY_NAME, '/', ' ') from atemschutzpflegestelle_cities ac where ac.CITY_NO = ?"
 	var cityName string
 	ExecuteSQLRow(statement, cityNo).Scan(&cityName)
 	return cityName

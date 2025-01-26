@@ -27,10 +27,58 @@ func CreateCityPDFs(cityNos []int, year int) (string, string) {
 		addPDFToZip(zipWriter, filename, pdf)
 	}
 
+	pdf := createAGWPDF(year)
+	addPDFToZip(zipWriter, "AGW.pdf", pdf)
+
 	zipWriter.Close()
 	zipDataBytes := zipData.Bytes()
 	saveZipToFile(zipDataBytes, pathZip+fileZip)
 	return pathZip, fileZip
+}
+
+func createAGWPDF(year int) *fpdf.Fpdf {
+	personWorktimeResults := GetPersonWorktimeResults(year)
+	pdf := fpdf.New("P", "mm", "A4", "")
+	pdf.AddUTF8Font("myArial", "", "ressources/arial-unicode-ms.ttf")
+	pdf.AddUTF8Font("myArial", "B", "ressources/arial-unicode-ms-bold.ttf")
+	pdf.SetHeaderFunc(func() { staticHeader(pdf, year, "Atemschutzgerätewarte") })
+	pdf.SetFooterFunc(func() { footer(pdf) })
+
+	pdf.AddPage()
+
+	pdf.Ln(3)
+	grayColor := 200
+	pdf.SetFont("myArial", "B", 12.0)
+	pdf.SetX(25)
+	pdf.SetFillColor(grayColor, grayColor, grayColor)
+	pdf.CellFormat(80, 7, "Name", "1", 0, "C", true, 0, "")
+	pdf.CellFormat(80, 7, "Arbeitszeit in Stunden", "1", 0, "C", true, 0, "")
+	pdf.Ln(7)
+
+	dataFontSize := 10.0
+	fontFamily := "myArial"
+	pdf.SetFont(fontFamily, "", dataFontSize)
+
+	timeWorkSum := 0.0
+
+	for _, personWorktimeResult := range personWorktimeResults {
+		pdf.SetX(25)
+		timeWorkSum += float64(personWorktimeResult.TimeWork)
+		pdf.CellFormat(80, 7, personWorktimeResult.Firstname+" "+personWorktimeResult.Lastname, "1", 0, "L", false, 0, "")
+		pdf.CellFormat(80, 7, strconv.FormatFloat(float64(personWorktimeResult.TimeWork), 'f', 2, 64), "1", 0, "C", false, 0, "")
+		pdf.Ln(7)
+	}
+	pdf.SetX(25)
+	pdf.CellFormat(160, 2, "", "1", 0, "L", false, 0, "")
+	pdf.Ln(2)
+
+	pdf.SetX(25)
+	pdf.SetFillColor(grayColor, grayColor, grayColor)
+	pdf.SetFont(fontFamily, "B", dataFontSize)
+	pdf.CellFormat(80, 7, "", "1", 0, "L", true, 0, "")
+	pdf.CellFormat(80, 7, strconv.FormatFloat(timeWorkSum, 'f', 2, 64), "1", 0, "C", true, 0, "")
+
+	return pdf
 }
 
 func createCityPDF(filename string, cityName string, cityNo int, year int) *fpdf.Fpdf {
@@ -49,7 +97,7 @@ func createCityPDF(filename string, cityName string, cityNo int, year int) *fpdf
 	return pdf
 }
 
-func header(pdf *fpdf.Fpdf, year int, cityName string, withTableHeader bool) {
+func staticHeader(pdf *fpdf.Fpdf, year int, cityName string) {
 	pdf.SetFont("myArial", "B", 20)
 	pdf.Cell(0, 10, cityName)
 	pdf.Ln(10)
@@ -62,6 +110,10 @@ func header(pdf *fpdf.Fpdf, year int, cityName string, withTableHeader bool) {
 	pdf.Image("ressources/LogoHeader.jpg", 140.0, 5.0, 60.0, 0.0, false, "", 0, "")
 
 	pdf.Ln(10)
+}
+
+func header(pdf *fpdf.Fpdf, year int, cityName string, withTableHeader bool) {
+	staticHeader(pdf, year, cityName)
 
 	if withTableHeader {
 		headerDetail := []string{"füllen", "TÜV", "prüfen", "reinigen", "prüfen", "reinigen", "prüfen", "reinigen"}

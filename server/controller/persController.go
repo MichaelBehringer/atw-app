@@ -74,3 +74,31 @@ func ResetPassword(person PersonPassword) bool {
 	ExecuteDDL("UPDATE pers SET PASSWORD = ? where PERS_NO = ?", person.Password, person.PersNo)
 	return true
 }
+
+func GetPersonWorktimeResults(year int) []PersonWorktimeResult {
+	statement := `SELECT
+	p.FIRSTNAME,
+	p.LASTNAME,
+	d.PERS_NO,
+	sum(d.TIME_WORK) as TIME_WORK
+FROM
+	atemschutzpflegestelle_data d
+inner join pers p on
+	d.PERS_NO = p.PERS_NO
+WHERE
+	YEAR(d.DATE_WORK) = ?
+	and d.state = 'saved'
+GROUP BY d.PERS_NO`
+
+	results := ExecuteSQL(statement, year)
+	personWorktimeResults := []PersonWorktimeResult{}
+	for results.Next() {
+		var personWorktimeResult PersonWorktimeResult
+		err := results.Scan(&personWorktimeResult.Firstname, &personWorktimeResult.Lastname, &personWorktimeResult.PersNo, &personWorktimeResult.TimeWork)
+		if err != nil {
+			panic(err.Error())
+		}
+		personWorktimeResults = append(personWorktimeResults, personWorktimeResult)
+	}
+	return personWorktimeResults
+}
