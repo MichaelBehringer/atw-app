@@ -77,6 +77,53 @@ func createAGWPDF(year int) *fpdf.Fpdf {
 	pdf.SetFont(fontFamily, "B", dataFontSize)
 	pdf.CellFormat(80, 7, "", "1", 0, "L", true, 0, "")
 	pdf.CellFormat(80, 7, strconv.FormatFloat(timeWorkSum, 'f', 2, 64), "1", 0, "C", true, 0, "")
+	pdf.Ln(7)
+
+	pdf.SetX(25)
+	pdf.CellFormat(160, 2, "", "", 0, "L", false, 0, "")
+	pdf.Ln(10)
+
+	yearSumDataResult := GetYearSumDataResult(year)
+
+	pdf.SetX(25)
+	pdf.CellFormat(80, 7, "Flaschen füllen", "1", 0, "L", false, 0, "")
+	pdf.CellFormat(80, 7, strconv.Itoa(yearSumDataResult.FlaschenFuellen), "1", 0, "C", false, 0, "")
+	pdf.Ln(7)
+
+	pdf.SetX(25)
+	pdf.CellFormat(80, 7, "Flaschen TÜV", "1", 0, "L", false, 0, "")
+	pdf.CellFormat(80, 7, strconv.Itoa(yearSumDataResult.FlaschenTuev), "1", 0, "C", false, 0, "")
+	pdf.Ln(7)
+
+	pdf.SetX(25)
+	pdf.CellFormat(80, 7, "Geräte prüfen", "1", 0, "L", false, 0, "")
+	pdf.CellFormat(80, 7, strconv.Itoa(yearSumDataResult.GeraetePruefen), "1", 0, "C", false, 0, "")
+	pdf.Ln(7)
+
+	pdf.SetX(25)
+	pdf.CellFormat(80, 7, "Geräte reinigen", "1", 0, "L", false, 0, "")
+	pdf.CellFormat(80, 7, strconv.Itoa(yearSumDataResult.GeraeteReinigen), "1", 0, "C", false, 0, "")
+	pdf.Ln(7)
+
+	pdf.SetX(25)
+	pdf.CellFormat(80, 7, "Masken prüfen", "1", 0, "L", false, 0, "")
+	pdf.CellFormat(80, 7, strconv.Itoa(yearSumDataResult.MaskenPruefen), "1", 0, "C", false, 0, "")
+	pdf.Ln(7)
+
+	pdf.SetX(25)
+	pdf.CellFormat(80, 7, "Masken reinigen", "1", 0, "L", false, 0, "")
+	pdf.CellFormat(80, 7, strconv.Itoa(yearSumDataResult.MaskenReinigen), "1", 0, "C", false, 0, "")
+	pdf.Ln(7)
+
+	pdf.SetX(25)
+	pdf.CellFormat(80, 7, "LA prüfen", "1", 0, "L", false, 0, "")
+	pdf.CellFormat(80, 7, strconv.Itoa(yearSumDataResult.LaPruefen), "1", 0, "C", false, 0, "")
+	pdf.Ln(7)
+
+	pdf.SetX(25)
+	pdf.CellFormat(80, 7, "LA reinigen", "1", 0, "L", false, 0, "")
+	pdf.CellFormat(80, 7, strconv.Itoa(yearSumDataResult.LaReinigen), "1", 0, "C", false, 0, "")
+	pdf.Ln(7)
 
 	return pdf
 }

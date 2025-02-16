@@ -77,3 +77,14 @@ type EntryObjTree struct {
 	DateWork      string   `json:"dateWork"`
 	TimeWork      float32  `json:"timeWork"`
 }
+
+type YearSumDataResult struct {
+	FlaschenFuellen int `json:"flaschenFuellen"`
+	FlaschenTuev    int `json:"flaschenTUEV"`
+	MaskenReinigen  int `json:"maskenReinigen"`
+	MaskenPruefen   int `json:"maskenPruefen"`
+	LaReinigen      int `json:"laReinigen"`
+	LaPruefen       int `json:"laPruefen"`
+	GeraetePruefen  int `json:"geraetePruefen"`
+	GeraeteReinigen int `json:"geraeteReinigen"`
+}

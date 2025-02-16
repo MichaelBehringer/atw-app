@@ -153,3 +153,23 @@ func createNtfyLine(amounth int, name string) string {
 	}
 	return ""
 }
+
+func GetYearSumDataResult(year int) YearSumDataResult {
+	var yearSumDataResult YearSumDataResult
+	ExecuteSQLRow(`select
+	sum(FLASCHEN_FUELLEN),
+	sum(FLASCHEN_TUEV),
+	sum(MASKEN_REINIGEN),
+	sum(MASKEN_PRUEFEN),
+	sum(LA_REINIGEN),
+	sum(LA_PRUEFEN),
+	sum(GERAETE_PRUEFEN),
+	sum(GERAETE_REINIGEN)
+from
+	atemschutzpflegestelle_data d
+where
+	year(d.DATE_WORK) = ?
+	and d.state = 'saved'`, year).Scan(
+		&yearSumDataResult.FlaschenFuellen, &yearSumDataResult.FlaschenTuev, &yearSumDataResult.MaskenReinigen, &yearSumDataResult.MaskenPruefen, &yearSumDataResult.LaReinigen, &yearSumDataResult.LaPruefen, &yearSumDataResult.GeraetePruefen, &yearSumDataResult.GeraeteReinigen)
+	return yearSumDataResult
+}
