@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-pdf/fpdf"
@@ -24,7 +25,8 @@ func CreateCityPDFs(cityNos []int, year int) (string, string) {
 
 	for _, cityNo := range cityNos {
 		cityName := GetCityname(cityNo)
-		filename := cityName + ".pdf"
+		// "Altisheim/Leitheim" wuerde im ZIP einen Ordner aufmachen.
+		filename := strings.ReplaceAll(cityName, "/", " ") + ".pdf"
 		pdf := createCityPDF(filename, cityName, cityNo, year)
 		addPDFToZip(zipWriter, filename, pdf)
 	}

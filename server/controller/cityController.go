@@ -77,7 +77,10 @@ WHERE
 }
 
 func GetCityname(cityNo int) string {
-	statement := "select REPLACE(ac.CITY_NAME, '/', ' ') from atemschutzpflegestelle_cities ac where ac.CITY_NO = ?"
+	// Der echte Name. Das Ersetzen von "/" gehoert an die Stelle, die einen
+	// Dateinamen daraus baut (pdfController), nicht hierher - sonst steht in
+	// Benachrichtigungen "Altisheim Leitheim" statt "Altisheim/Leitheim".
+	statement := "select ac.CITY_NAME from atemschutzpflegestelle_cities ac where ac.CITY_NO = ?"
 	var cityName string
 	ExecuteSQLRow(statement, cityNo).Scan(&cityName)
 	return cityName
