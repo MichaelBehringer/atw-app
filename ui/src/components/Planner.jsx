@@ -22,22 +22,11 @@ const GROUPS = [
   { title: 'Gerät', keys: ['gp', 'gr'] },
 ];
 
-// Payload-Schlüssel je Arbeitsart. Das Backend erwartet weiterhin BEIDE
-// Angaben - Anzahl und Nummernliste. Die Anzahl ist aber nichts anderes als
-// die Länge der Liste, deshalb gibt es dafür kein Eingabefeld mehr und der
-// Wert wird hier abgeleitet. Damit ist die alte Abgleichprüfung ("Anzahl der
-// eingegebenen Nummern passt nicht") strukturell unmöglich geworden.
-const PAYLOAD_KEYS = {
-  ff: ['flaschenFuellen', 'flaschenFuellenNr'],
-  ft: ['flaschenTUEV', 'flaschenTUEVNr'],
-  mp: ['maskenPruefen', 'maskenPruefenNr'],
-  mr: ['maskenReinigen', 'maskenReinigenNr'],
-  lp: ['laPruefen', 'laPruefenNr'],
-  lr: ['laReinigen', 'laReinigenNr'],
-  gp: ['geraetePruefen', 'geraetePruefenNr'],
-  gr: ['geraeteReinigen', 'geraeteReinigenNr'],
-};
-
+// Das Backend erwartet weiterhin BEIDE Angaben - Anzahl und Nummernliste. Die
+// Anzahl ist aber nichts anderes als die Länge der Liste, deshalb gibt es dafür
+// kein Eingabefeld mehr und der Wert wird abgeleitet. Damit ist die alte
+// Abgleichprüfung ("Anzahl der eingegebenen Nummern passt nicht") strukturell
+// unmöglich geworden.
 const WORK_TYPE_BY_KEY = Object.fromEntries(WORK_TYPES.map((t) => [t.key, t]));
 
 function emptyNumbers() {
@@ -46,10 +35,10 @@ function emptyNumbers() {
 
 function buildWorkPayload(numbers) {
   const payload = {};
-  for (const [key, [countKey, nrKey]] of Object.entries(PAYLOAD_KEYS)) {
-    const list = numbers[key] ?? [];
-    payload[countKey] = list.length;
-    payload[nrKey] = list.join(',');
+  for (const type of WORK_TYPES) {
+    const list = numbers[type.key] ?? [];
+    payload[type.countField] = list.length;
+    payload[type.field] = list.join(',');
   }
   return payload;
 }

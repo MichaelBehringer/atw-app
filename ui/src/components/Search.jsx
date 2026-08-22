@@ -1,209 +1,272 @@
-import { useState, useEffect } from "react";
-import {EditOutlined} from '@ant-design/icons';
-import {Button, Input, InputNumber, Modal, Table} from 'antd';
+import { useEffect, useMemo, useState } from "react";
+import { Button, Card, Drawer, Empty, Form, Input, InputNumber, Popconfirm, Select, Skeleton, Space, Table, Tag, theme } from 'antd';
+import { myToastError, myToastSuccess } from "../helper/ToastHelper";
+import { doDeleteRequestAuth, doGetRequestAuth, doPostRequestAuth } from "../helper/RequestHelper";
+import { WORK_TYPES, summarizeSearchRow } from "../helper/auftrag";
+import { getUserToID, isAdmin } from "../helper/helpFunctions";
+import useIsMobile from "../hooks/useIsMobile";
 
-import Select from 'react-select';
-import 'dayjs/locale/de';
-import {myToastError, myToastSuccess} from "../helper/ToastHelper";
-import {doDeleteRequestAuth, doGetRequestAuth, doPostRequestAuth} from "../helper/RequestHelper";
-import {getUserToID, isAdmin} from "../helper/helpFunctions";
+// Die erfassten Arbeiten als Chips - nur was tatsächlich anfiel.
+function Arbeitsarten({ row, color }) {
+  const parts = summarizeSearchRow(row);
+  if (parts.length === 0) {
+    return <span style={{ color }}>Sonstige Aufgabe</span>;
+  }
+  return (
+    <Space size={[4, 4]} wrap>
+      {parts.map((p) => (
+        <Tag key={p.key} style={{ marginInlineEnd: 0 }}>
+          {p.count}× {p.label}
+        </Tag>
+      ))}
+    </Space>
+  );
+}
 
 function Search(props) {
   const [users, setUsers] = useState([]);
   const [dataSource, setDataSource] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedData, setSelectedData] = useState();
+  const [entwurf, setEntwurf] = useState();
+  const [saving, setSaving] = useState(false);
 
-  function showModal(e) {
-    setIsModalOpen(true);
-    setSelectedData(e);
-  };
-  function handleOk() {
-      const params = {flaschenFuellen: selectedData?.flaschenFuellen, flaschenTUEV: selectedData?.flaschenTUEV, maskenPruefen: selectedData?.maskenPruefen, maskenReinigen: selectedData?.maskenReinigen, laPruefen: selectedData?.laPruefen, laReinigen: selectedData?.laReinigen, geraetePruefen: selectedData?.gereatPruefen, geraeteReinigen: selectedData?.gereatReinigen, arbeitszeit: selectedData?.timeWork, bemerkung: selectedData?.bemerkung, dataNo: selectedData.key};
-      doPostRequestAuth("updateEntry", params, props.token).then((res) => {
-        if (res.status === 200) {
-          myToastSuccess('Update erfolgreich');
-        } else {
-          myToastError('Fehler beim Update aufgetreten');
-        }
-        doSearch(selectedUser.value);
-      });
-      setIsModalOpen(false);
-  };
-  function handleDelete() {
-      const params = {dataNo: selectedData.key};
-      doDeleteRequestAuth("deleteEntry", params, props.token).then((res) => {
-        if (res.status === 200) {
-          myToastSuccess('Löschen erfolgreich');
-        } else {
-          myToastError('Fehler beim Löschen aufgetreten');
-        }
-        doSearch(selectedUser.value);
-      });
-      setIsModalOpen(false);
-  };
-  function handleCancel() {
-    setIsModalOpen(false);
-  };
+  const isMobile = useIsMobile();
+  const { token } = theme.useToken();
+  const darfBearbeiten = isAdmin(props.loggedFunctionNo);
 
-  function handleUserChange(e) {
-    setSelectedUser(e);
-    doSearch(e.value)
-  }
+  const userOptions = useMemo(
+    () => users.map((u) => ({ value: u.persNo, label: `${u.firstname} ${u.lastname}` })),
+    [users]
+  );
 
-  function doSearch(persNumber) {
-    const params = {persNo: persNumber};
-    doPostRequestAuth("search", params, props.token).then((res) => {
-      setDataSource(res.data);
-    });
+  function doSearch(persNo) {
+    if (!persNo) return Promise.resolve();
+    setLoading(true);
+    return doPostRequestAuth("search", { persNo }, props.token)
+      .then((res) => setDataSource(res.data ?? []))
+      .catch(() => myToastError("Einträge konnten nicht geladen werden."))
+      .finally(() => setLoading(false));
   }
 
   useEffect(() => {
-    doGetRequestAuth("pers", props.token).then(
-      res => {
-        setUsers(
-          res.data.map(row => ({
-            persNo: row.persNo,
-            firstname: row.firstname,
-            lastname: row.lastname
-          }))
-        );
-      }
-    );
+    doGetRequestAuth("pers", props.token)
+      .then((res) => setUsers(res.data ?? []))
+      .catch(() => myToastError("Gerätewarte konnten nicht geladen werden."));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (users.length !== 0) {
-      let loggedUser = getUserToID(props.loggedPersNo, users);
-      setSelectedUser({value: loggedUser?.persNo, label: loggedUser?.firstname + " " + loggedUser?.lastname});
-      doSearch(loggedUser?.persNo)
-    }
+    if (users.length === 0) return;
+    const me = getUserToID(props.loggedPersNo, users);
+    setSelectedUser(me?.persNo);
+    doSearch(me?.persNo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [users]);
 
+  function handleUserChange(persNo) {
+    setSelectedUser(persNo);
+    doSearch(persNo);
+  }
+
+  function handleSave() {
+    // Die Anzahl-Felder von /search heißen teils anders als die von
+    // updateEntry - deshalb die Übersetzung über WORK_TYPES.
+    const params = {
+      dataNo: entwurf.key,
+      arbeitszeit: entwurf.timeWork,
+      bemerkung: entwurf.bemerkung,
+    };
+    for (const type of WORK_TYPES) {
+      params[type.countField] = entwurf[type.searchField] ?? 0;
+    }
+
+    setSaving(true);
+    doPostRequestAuth("updateEntry", params, props.token)
+      .then(() => {
+        myToastSuccess('Änderung gespeichert');
+        setEntwurf(undefined);
+        return doSearch(selectedUser);
+      })
+      .catch(() => myToastError('Fehler beim Speichern'))
+      .finally(() => setSaving(false));
+  }
+
+  function handleDelete() {
+    setSaving(true);
+    doDeleteRequestAuth("deleteEntry", { dataNo: entwurf.key }, props.token)
+      .then(() => {
+        myToastSuccess('Eintrag gelöscht');
+        setEntwurf(undefined);
+        return doSearch(selectedUser);
+      })
+      .catch(() => myToastError('Fehler beim Löschen'))
+      .finally(() => setSaving(false));
+  }
+
   const columns = [
+    { title: 'Feuerwehr', dataIndex: 'city', key: 'city' },
+    { title: 'Datum', dataIndex: 'dateWork', key: 'dateWork', width: 120 },
+    { title: 'Zeit (h)', dataIndex: 'timeWork', key: 'timeWork', width: 100 },
     {
-      title: 'Feuerwehr',
-      dataIndex: 'city',
-      key: 'city',
+      title: 'Arbeiten',
+      key: 'arbeiten',
+      render: (_, row) => <Arbeitsarten row={row} color={token.colorTextSecondary} />,
     },
-    {
-      title: 'Datum',
-      dataIndex: 'dateWork',
-      key: 'dateWork',
-    },
-    {
-      title: 'Zeit (Stunden)',
-      dataIndex: 'timeWork',
-      key: 'timeWork',
-    },
-    {
-      title: 'Flaschen füllen',
-      dataIndex: 'flaschenFuellen',
-      key: 'flaschenFuellen',
-    },
-    {
-      title: 'Flaschen TÜV',
-      dataIndex: 'flaschenTUEV',
-      key: 'flaschenTUEV',
-    },
-    {
-      title: 'Masken prüfen',
-      dataIndex: 'maskenPruefen',
-      key: 'maskenPruefen',
-    },
-    {
-      title: 'Masken reinigen',
-      dataIndex: 'maskenReinigen',
-      key: 'maskenReinigen',
-    },
-    {
-      title: 'LA prüfen',
-      dataIndex: 'laPruefen',
-      key: 'laPruefen',
-    },
-    {
-      title: 'LA reinigen',
-      dataIndex: 'laReinigen',
-      key: 'laReinigen',
-    },
-    {
-      title: 'Gerät prüfen',
-      dataIndex: 'gereatPruefen',
-      key: 'gereatPruefen',
-    },
-    {
-      title: 'Gerät reinigen',
-      dataIndex: 'gereatReinigen',
-      key: 'gereatReinigen',
-    },
-    {
-      title: 'Bemerkung',
-      dataIndex: 'bemerkung',
-      key: 'bemerkung',
-    },
+    { title: 'Bemerkung', dataIndex: 'bemerkung', key: 'bemerkung' },
     {
       title: '',
-      dataIndex: '',
-      key: 'x',
-      render: (e) => isAdmin(props.loggedFunctionNo) ? <EditOutlined onClick={() => showModal(e)} /> : <EditOutlined style={{cursor: "not-allowed"}}/>
+      key: 'action',
+      width: 140,
+      // Vorher stand die Aktionsspalte am Ende einer ~1100px breiten Tabelle
+      // und war ohne langes Scrollen nicht erreichbar.
+      fixed: 'right',
+      render: (_, row) =>
+        darfBearbeiten ? (
+          <Button onClick={() => setEntwurf({ ...row })}>Bearbeiten</Button>
+        ) : null,
     },
   ];
 
+  const filter = (
+    <Form layout="vertical" style={{ marginBottom: isMobile ? 12 : 16 }}>
+      <Form.Item label="Atemschutzgerätewart" style={{ marginBottom: 0 }}>
+        <Select
+          showSearch
+          aria-label="Atemschutzgerätewart"
+          optionFilterProp="label"
+          disabled={!darfBearbeiten}
+          value={selectedUser}
+          options={userOptions}
+          onChange={handleUserChange}
+          placeholder="Atemschutzgerätewart"
+        />
+      </Form.Item>
+    </Form>
+  );
 
-  const optionsUsers = users.map(user => ({
-    value: user.persNo, label: user.firstname + " " + user.lastname
-  }));
+  let inhalt;
+  if (loading) {
+    inhalt = <Skeleton active paragraph={{ rows: 5 }} />;
+  } else if (dataSource.length === 0) {
+    inhalt = <Empty description="Keine Einträge gefunden" />;
+  } else if (isMobile) {
+    inhalt = (
+      <Space direction="vertical" size={12} style={{ display: 'flex' }}>
+        {dataSource.map((row) => (
+          <Card key={row.key} size="small">
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
+              <strong style={{ fontSize: 17 }}>{row.city || 'Ohne Feuerwehr'}</strong>
+              <span style={{ color: token.colorTextSecondary, whiteSpace: 'nowrap' }}>
+                {row.dateWork}
+              </span>
+            </div>
+            <div style={{ color: token.colorTextSecondary, marginTop: 2 }}>
+              #{row.key} · {row.timeWork} h
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <Arbeitsarten row={row} color={token.colorTextSecondary} />
+            </div>
+            {row.bemerkung && (
+              <div style={{ marginTop: 8, color: token.colorTextSecondary }}>{row.bemerkung}</div>
+            )}
+            {darfBearbeiten && (
+              <Button block style={{ marginTop: 14 }} onClick={() => setEntwurf({ ...row })}>
+                Bearbeiten
+              </Button>
+            )}
+          </Card>
+        ))}
+      </Space>
+    );
+  } else {
+    inhalt = (
+      <Table rowKey="key" dataSource={dataSource} columns={columns} scroll={{ x: 'max-content' }} />
+    );
+  }
 
   return (
-    users.length !== 0 ?
-        <div>
-          <Modal title="Eintrag bearbeiten" open={isModalOpen} onOk={handleOk} onCancel={handleCancel} footer={[
-            <Button
-              key="Delete"
-              type="primary"
-              onClick={handleDelete}
-              danger
+    <>
+      {filter}
+      {inhalt}
+
+      <Drawer
+        open={Boolean(entwurf)}
+        onClose={() => setEntwurf(undefined)}
+        placement="bottom"
+        height={isMobile ? '100%' : '85%'}
+        title={entwurf ? `Eintrag #${entwurf.key} · ${entwurf.city || 'ohne Feuerwehr'}` : ''}
+        footer={
+          <div style={{ display: 'flex', gap: 12, paddingBottom: 'var(--safe-bottom)' }}>
+            {/* Löschen sitzt bewusst getrennt von Speichern - vorher lagen die
+                beiden Knöpfe etwa 8px auseinander. */}
+            <Popconfirm
+              title="Eintrag löschen?"
+              description="Das lässt sich nicht rückgängig machen."
+              okText="Löschen"
+              okButtonProps={{ danger: true }}
+              cancelText="Abbrechen"
+              onConfirm={handleDelete}
             >
-              Löschen
-            </Button>,
-            <Button key="cancle" onClick={handleCancel}>
-              Abbrechen
-            </Button>,
-            <Button key="submit" type="primary" onClick={handleOk}>
+              <Button danger size="large">Löschen</Button>
+            </Popconfirm>
+            <Button type="primary" size="large" style={{ flex: 1 }} loading={saving} onClick={handleSave}>
               Speichern
             </Button>
-          ]}
+          </div>
+        }
+      >
+        {entwurf && (
+          <Form layout="vertical">
+            <Space size={12} style={{ display: 'flex' }} align="start">
+              <Form.Item label="Datum" style={{ flex: 1 }}>
+                <Input value={entwurf.dateWork} disabled />
+              </Form.Item>
+              <Form.Item label="Arbeitszeit (h)" style={{ flex: 1 }}>
+                <InputNumber
+                  aria-label="Arbeitszeit"
+                  value={entwurf.timeWork}
+                  onChange={(v) => setEntwurf({ ...entwurf, timeWork: v })}
+                  min={0}
+                  max={10}
+                  step={0.5}
+                  decimalSeparator=","
+                  inputMode="decimal"
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            </Space>
 
-          >
-            <Input disabled value={selectedData?.city} className="ffInputFull" />
-            <Input disabled value={selectedUser?.label} className="ffInputFull" />
-            <InputNumber addonBefore="Flaschen füllen" value={selectedData?.flaschenFuellen} onChange={(e) => setSelectedData({...selectedData, flaschenFuellen: e})} precision={0} min={0} max={10} className="ffInputFull" placeholder={"Flaschen füllen"} />
+            {/* Ein Feld pro Zeile mit Label darüber. Vorher fraß das addonBefore
+                bei 358px Modalbreite über die Hälfte und ließ dem Zahlenfeld
+                rund 80px. */}
+            {WORK_TYPES.map((type) => (
+              <Form.Item key={type.key} label={type.label} style={{ marginBottom: 12 }}>
+                <InputNumber
+                  aria-label={type.label}
+                  value={entwurf[type.searchField]}
+                  onChange={(v) => setEntwurf({ ...entwurf, [type.searchField]: v })}
+                  precision={0}
+                  min={0}
+                  max={10}
+                  inputMode="numeric"
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            ))}
 
-            <InputNumber addonBefore="Flaschen TÜV" value={selectedData?.flaschenTUEV} onChange={(e) => setSelectedData({...selectedData, flaschenTUEV: e})} precision={0} min={0} max={10} className="ffInputFull" placeholder={"Flaschen TÜV"} />
-
-            <InputNumber addonBefore="Masken prüfen" value={selectedData?.maskenPruefen} onChange={(e) => setSelectedData({...selectedData, maskenPruefen: e})} precision={0} min={0} max={10} className="ffInputFull" placeholder={"Masken prüfen"} />
-
-            <InputNumber addonBefore="Masken reinigen" value={selectedData?.maskenReinigen} onChange={(e) => setSelectedData({...selectedData, maskenReinigen: e})} precision={0} min={0} max={10} className="ffInputFull" placeholder={"Masken reinigen"} />
-
-            <InputNumber addonBefore="LA prüfen" value={selectedData?.laPruefen} onChange={(e) => setSelectedData({...selectedData, laPruefen: e})} precision={0} min={0} max={10} className="ffInputFull" placeholder={"LA prüfen"} />
-
-            <InputNumber addonBefore="LA reinigen" value={selectedData?.laReinigen} onChange={(e) => setSelectedData({...selectedData, laReinigen: e})} precision={0} min={0} max={10} className="ffInputFull" placeholder={"LA reinigen"} />
-
-            <InputNumber addonBefore="Geräte prüfen" value={selectedData?.gereatPruefen} onChange={(e) => setSelectedData({...selectedData, gereatPruefen: e})} precision={0} min={0} max={10} className="ffInputFull" placeholder={"Geräte prüfen"} />
-
-            <InputNumber addonBefore="Geräte reinigen" value={selectedData?.gereatReinigen} onChange={(e) => setSelectedData({...selectedData, gereatReinigen: e})} precision={0} min={0} max={10} className="ffInputFull" placeholder={"Geräte reinigen"} />
-            <Input addonBefore="Bemerkung" value={selectedData?.bemerkung} onChange={(e) => setSelectedData({...selectedData, bemerkung: e.target.value})} className="ffInputFull" />
-
-            <InputNumber addonBefore="Arbeitszeit (h)" value={selectedData?.timeWork} onChange={(e) => setSelectedData({...selectedData, timeWork: e})} decimalSeparator={","} min={0} max={10} className="ffInputFull" placeholder={"Arbeitszeit (h)"} />
-            <Input disabled value={selectedData?.dateWork} className="ffInputFull" />
-
-          </Modal>
-          <Select isDisabled={!isAdmin(props.loggedFunctionNo)} value={selectedUser}  className="ffInputFull" placeholder={"Atemschutzgerätewart"} options={optionsUsers} onChange={(e) => handleUserChange(e)} />
-          <Table scroll={{x: 400}} dataSource={dataSource} columns={columns} />
-        </div> : <div>Daten werden geladen</div>);
+            <Form.Item label="Bemerkung">
+              <Input
+                aria-label="Bemerkung"
+                value={entwurf.bemerkung}
+                onChange={(e) => setEntwurf({ ...entwurf, bemerkung: e.target.value })}
+              />
+            </Form.Item>
+          </Form>
+        )}
+      </Drawer>
+    </>
+  );
 }
 
 export default Search;

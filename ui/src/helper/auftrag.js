@@ -5,15 +5,22 @@
 // Die Schlüsselkürzel (ff, ft, mp, ...) sind ein Vertrag mit dem Backend:
 // UpdateEntryTree in server/controller/dataController.go ordnet sie über ein
 // switch der jeweiligen Spalte zu. Sie dürfen nicht umbenannt werden.
+// field       - Nummernliste, wie sie /entry/:id und searchOpen liefern
+// countField  - Anzahl im Payload von createEntry/saveEntry/updateEntry
+// searchField - Anzahl in der Antwort von /search. Achtung: dort heißen die
+//               beiden Geräte-Felder 'gereat...' statt 'geraete...'. Das ist
+//               ein Tippfehler in den json-Tags von SearchResult
+//               (server/models/data.go) und der einzige Grund, warum es hier
+//               zwei Namen gibt. Umbenennen wäre eine Änderung der Schnittstelle.
 export const WORK_TYPES = [
-  { key: 'ff', field: 'flaschenFuellenNr', label: 'Flaschen füllen', item: 'Flasche' },
-  { key: 'ft', field: 'flaschenTUEVNr', label: 'Flaschen TÜV', item: 'Flasche' },
-  { key: 'mp', field: 'maskenPruefenNr', label: 'Masken prüfen', item: 'Maske' },
-  { key: 'mr', field: 'maskenReinigenNr', label: 'Masken reinigen', item: 'Maske' },
-  { key: 'lp', field: 'laPruefenNr', label: 'LA prüfen', item: 'Lungenautomat' },
-  { key: 'lr', field: 'laReinigenNr', label: 'LA reinigen', item: 'Lungenautomat' },
-  { key: 'gp', field: 'geraetePruefenNr', label: 'Geräte prüfen', item: 'Gerät' },
-  { key: 'gr', field: 'geraeteReinigenNr', label: 'Geräte reinigen', item: 'Gerät' },
+  { key: 'ff', field: 'flaschenFuellenNr', countField: 'flaschenFuellen', searchField: 'flaschenFuellen', label: 'Flaschen füllen', item: 'Flasche' },
+  { key: 'ft', field: 'flaschenTUEVNr', countField: 'flaschenTUEV', searchField: 'flaschenTUEV', label: 'Flaschen TÜV', item: 'Flasche' },
+  { key: 'mp', field: 'maskenPruefenNr', countField: 'maskenPruefen', searchField: 'maskenPruefen', label: 'Masken prüfen', item: 'Maske' },
+  { key: 'mr', field: 'maskenReinigenNr', countField: 'maskenReinigen', searchField: 'maskenReinigen', label: 'Masken reinigen', item: 'Maske' },
+  { key: 'lp', field: 'laPruefenNr', countField: 'laPruefen', searchField: 'laPruefen', label: 'LA prüfen', item: 'Lungenautomat' },
+  { key: 'lr', field: 'laReinigenNr', countField: 'laReinigen', searchField: 'laReinigen', label: 'LA reinigen', item: 'Lungenautomat' },
+  { key: 'gp', field: 'geraetePruefenNr', countField: 'geraetePruefen', searchField: 'gereatPruefen', label: 'Geräte prüfen', item: 'Gerät' },
+  { key: 'gr', field: 'geraeteReinigenNr', countField: 'geraeteReinigen', searchField: 'gereatReinigen', label: 'Geräte reinigen', item: 'Gerät' },
 ]
 
 // Der Schlüssel, der einen Auftrag komplett abschließt. Enthält workingPoints
@@ -86,4 +93,12 @@ export function buildWorkingPoints(checkedKeys, sections) {
 export function isComplete(checkedKeys, sections) {
   const all = allItemKeys(sections)
   return all.length > 0 && all.every((key) => checkedKeys.includes(key))
+}
+
+// Zusammenfassung eines /search-Treffers: nur die Arbeitsarten mit Wert > 0.
+export function summarizeSearchRow(row) {
+  return WORK_TYPES.flatMap((type) => {
+    const count = Number(row?.[type.searchField] ?? 0)
+    return count > 0 ? [{ key: type.key, label: type.label, count }] : []
+  })
 }

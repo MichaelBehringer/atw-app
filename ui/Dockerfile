@@ -8,7 +8,9 @@ COPY . .
 
 RUN npm run build
 
-# Endgueltiges Image auf Basis von Apache
-FROM httpd:2.4-alpine
+# nginx statt Apache: das Apache-Standardimage liefert weder Kompression noch
+# Cache-Header, und nginx laeuft in diesem Stack sowieso schon.
+FROM nginx:1.30-alpine
 
-COPY --from=build /app/dist/ /usr/local/apache2/htdocs/
+COPY --from=build /app/dist/ /usr/share/nginx/html/
+COPY ui-nginx.conf /etc/nginx/conf.d/default.conf

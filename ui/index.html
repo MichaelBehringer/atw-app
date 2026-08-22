@@ -2,7 +2,8 @@
 <html lang="de">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/app-icon.svg" sizes="any" type="image/svg+xml" />
     <!-- viewport-fit=cover ist die Voraussetzung dafuer, dass
          env(safe-area-inset-*) im Standalone-Modus ueberhaupt Werte liefert. -->
     <meta
@@ -32,8 +33,8 @@
     <!-- Kurz halten: iOS schneidet den Namen unter dem Icon ab. -->
     <meta name="apple-mobile-web-app-title" content="Atemschutz" />
 
-    <link rel="apple-touch-icon" href="/logo192.png" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <!-- Das Manifest fuegt vite-plugin-pwa beim Build selbst ein. -->
     <title>Atemschutzpflegestelle</title>
   </head>
   <body>

@@ -1,10 +1,65 @@
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
+
+const pkg = JSON.parse(readFileSync('./package.json', 'utf8'))
 
 // Das Backend hängt in Produktion hinter nginx unter /server/ (siehe conf.d/nginx.conf).
 // Der Dev-Proxy spiegelt genau diese Regel, damit der API-Pfad in Dev und Prod identisch ist.
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      // 'prompt': die App fragt nach, statt im Hintergrund zu wechseln. Wer
+      // gerade einen Auftrag abhakt, soll dabei nicht neu geladen werden.
+      registerType: 'prompt',
+      includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'app-icon.svg'],
+      manifest: {
+        id: '/',
+        name: 'FFW Wemding Atemschutzpflegestelle',
+        // Kurz halten: unter dem Symbol auf dem Startbildschirm ist nur Platz
+        // fuer rund 12 Zeichen.
+        short_name: 'Atemschutz',
+        description: 'Auftraege und Arbeitszeiten der Atemschutzpflegestelle der FFW Wemding',
+        lang: 'de',
+        dir: 'ltr',
+        start_url: '/',
+        scope: '/',
+        display: 'standalone',
+        orientation: 'portrait',
+        theme_color: '#c8102e',
+        background_color: '#ffffff',
+        icons: [
+          { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          // Ohne maskable-Variante zeigt Android das Symbol in einem weissen
+          // Kreis statt flaechig.
+          {
+            src: 'maskable-icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+        ],
+      },
+      workbox: {
+        // Nur die App-Shell. Das Hintergrundbild des Logins ist bewusst nicht
+        // dabei (jpg fehlt im Muster), es waere der groesste Brocken.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        navigateFallback: 'index.html',
+        // Die API darf nie aus dem Cache kommen - sonst zeigt die App
+        // veraltete Auftraege.
+        navigateFallbackDenylist: [/^\/server\//],
+      },
+    }),
+  ],
+  // Versionsnummer aus der package.json in den Build hineinreichen, damit die
+  // Kontoseite sie anzeigen kann.
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   server: {
     port: 3000,
     proxy: {

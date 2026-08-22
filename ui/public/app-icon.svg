@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Atemschutzpflegestelle">
+  <title>Atemschutzpflegestelle</title>
+  <!-- Vorlage fuer alle PWA-Icons. Aus dieser Datei erzeugt
+       @vite-pwa/assets-generator die PNG-Groessen. Motiv: Atemschutzgeraet,
+       also zwei Flaschen mit Ventil auf dem Feuerwehr-Rot der App. -->
+  <rect width="512" height="512" fill="#c8102e"/>
+
+  <g fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <!-- linke Flasche -->
+    <rect x="140" y="150" width="98" height="250" rx="46"/>
+    <!-- rechte Flasche -->
+    <rect x="274" y="150" width="98" height="250" rx="46"/>
+    <!-- Ventilbruecke -->
+    <path d="M189 150v-28h134v28"/>
+    <!-- Anschluss -->
+    <path d="M256 122V96"/>
+  </g>
+  <circle cx="256" cy="84" r="26" fill="#ffffff"/>
+</svg>

@@ -8,6 +8,7 @@ import {
   isComplete,
   parseNumbers,
   summarize,
+  summarizeSearchRow,
 } from './auftrag'
 
 // Wie searchOpen einen Auftrag liefert: 3 Flaschen füllen, 2 Masken prüfen.
@@ -139,5 +140,55 @@ describe('isComplete', () => {
 
   it('ist bei einem Auftrag ohne Punkte nicht vollstaendig', () => {
     expect(isComplete([], [])).toBe(false)
+  })
+})
+
+describe('summarizeSearchRow', () => {
+  it('zeigt nur Arbeitsarten mit Wert groesser null', () => {
+    const row = {
+      flaschenFuellen: 3,
+      flaschenTUEV: 0,
+      maskenPruefen: 1,
+      maskenReinigen: 0,
+      laPruefen: 0,
+      laReinigen: 0,
+      gereatPruefen: 2,
+      gereatReinigen: 0,
+    }
+    expect(summarizeSearchRow(row)).toEqual([
+      { key: 'ff', label: 'Flaschen füllen', count: 3 },
+      { key: 'mp', label: 'Masken prüfen', count: 1 },
+      { key: 'gp', label: 'Geräte prüfen', count: 2 },
+    ])
+  })
+
+  it('liest die Geraete-Felder unter ihrem verschriebenen Namen', () => {
+    // /search liefert 'gereatPruefen'/'gereatReinigen' statt 'geraete...'.
+    // Wer hier den korrekt geschriebenen Namen verwendet, bekommt still 0.
+    expect(summarizeSearchRow({ gereatReinigen: 4 })).toEqual([
+      { key: 'gr', label: 'Geräte reinigen', count: 4 },
+    ])
+    expect(summarizeSearchRow({ geraeteReinigen: 4 })).toEqual([])
+  })
+
+  it('meldet eine Sonstige Aufgabe als leere Liste', () => {
+    expect(summarizeSearchRow({})).toEqual([])
+    expect(summarizeSearchRow(null)).toEqual([])
+  })
+})
+
+describe('WORK_TYPES', () => {
+  it('hat fuer jede Arbeitsart alle drei Feldnamen', () => {
+    for (const type of WORK_TYPES) {
+      expect(type.field).toMatch(/Nr$/)
+      expect(type.countField).toBeTruthy()
+      expect(type.searchField).toBeTruthy()
+      expect(type.label).toBeTruthy()
+      expect(type.item).toBeTruthy()
+    }
+  })
+
+  it('deckt genau die acht Arbeitsarten ab', () => {
+    expect(WORK_TYPES.map((t) => t.key)).toEqual(['ff', 'ft', 'mp', 'mr', 'lp', 'lr', 'gp', 'gr'])
   })
 })

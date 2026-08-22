@@ -1,156 +1,170 @@
 import { useState } from "react";
-import {Col, Row, Input, Button, Divider, Modal, Table, Popconfirm, Space} from 'antd';
-import {DeleteOutlined, SaveOutlined} from "@ant-design/icons";
-import {myToastError, myToastSuccess} from "../helper/ToastHelper";
-import {doDeleteRequestAuth, doGetRequestAuth, doGetRequestBlob, doPostRequestAuth, doPutRequestAuth} from "../helper/RequestHelper";
-import {useNavigate} from "react-router";
+import { Button, Card, Input, List, Modal, Popconfirm, Space, Typography, theme } from 'antd';
+import { DeleteOutlined, DownloadOutlined, PlusOutlined, TeamOutlined } from "@ant-design/icons";
+import { myToastError, myToastSuccess } from "../helper/ToastHelper";
+import { doDeleteRequestAuth, doGetRequestAuth, doGetRequestBlob, doPostRequestAuth, doPutRequestAuth } from "../helper/RequestHelper";
+import { useNavigate } from "react-router";
+
+const { Title } = Typography;
 
 function Evaluation(props) {
   const [isModalFFOpen, setIsModalFFOpen] = useState(false);
   const [cities, setCities] = useState([]);
-  const [txtNewCity, setTxtNewCity] = useState();
+  const [txtNewCity, setTxtNewCity] = useState('');
+  const [downloading, setDownloading] = useState(false);
   const navigate = useNavigate();
+  const { token } = theme.useToken();
+
+  function loadCities() {
+    return doGetRequestAuth("cities", props.token)
+      .then((res) =>
+        setCities((res.data ?? []).map((row) => ({ key: row.cityNo, cityName: row.name })))
+      )
+      .catch(() => myToastError("Feuerwehren konnten nicht geladen werden."));
+  }
 
   function showFFModal() {
     setIsModalFFOpen(true);
     loadCities();
-  };
+  }
 
   function createNewCity() {
-    const params = { name: txtNewCity };
-      doPutRequestAuth("createCity", params, props.token).then(() => {
-          myToastSuccess('Speichern erfolgreich');
-          loadCities();
-          setTxtNewCity()
-      }, () => {
-        myToastError('Fehler beim speichern aufgetreten/Feuerwehr schon vorhanden');
-      }
-        );
+    if (!txtNewCity.trim()) {
+      myToastError('Bitte einen Namen eingeben');
+      return;
+    }
+    doPutRequestAuth("createCity", { name: txtNewCity.trim() }, props.token)
+      .then(() => {
+        myToastSuccess('Feuerwehr angelegt');
+        setTxtNewCity('');
+        return loadCities();
+      })
+      .catch(() => myToastError('Anlegen fehlgeschlagen - Feuerwehr schon vorhanden?'));
   }
 
-  function handleUpdateFF(e) {
-    doPostRequestAuth("updateCity", e, props.token).then((ret) => {
-      if (ret.status === 200) {
-        myToastSuccess('Speichern erfolgreich');
-      } else {
-        myToastError('Fehler beim speichern aufgetreten');
-      }
-    });
+  function handleUpdateFF(city) {
+    doPostRequestAuth("updateCity", city, props.token)
+      .then(() => myToastSuccess('Gespeichert'))
+      .catch(() => myToastError('Fehler beim Speichern'));
   }
 
-  function handleDeleteFF(e) {
-    const params = {cityNo: e.key};
-    doDeleteRequestAuth("deleteCity", params, props.token).then((res) => {
-      if (res.status === 200) {
-        myToastSuccess('Löschen erfolgreich');
-      } else {
-        myToastError('Fehler beim Löschen aufgetreten');
-      }
-      loadCities();
-    });
+  function handleDeleteFF(city) {
+    doDeleteRequestAuth("deleteCity", { cityNo: city.key }, props.token)
+      .then(() => {
+        myToastSuccess('Feuerwehr gelöscht');
+        return loadCities();
+      })
+      .catch(() => myToastError('Fehler beim Löschen'));
   }
 
-  function handleModalFFCancel() {
-    setIsModalFFOpen(false);
-  };
-
+  // Die Auswertung erzeugt serverseitig 22 PDFs und packt sie - das dauert
+  // gut eine Sekunde. Ohne Rückmeldung wirkt der Knopf kaputt.
   function handleFFAuswertung() {
-        doGetRequestBlob('file').then((response) => {
-      const downloadUrl = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.setAttribute('download', response.headers['content-language']); //any other extension
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(downloadUrl)
-  });
+    setDownloading(true);
+    doGetRequestBlob('file')
+      .then((response) => {
+        const downloadUrl = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.setAttribute('download', response.headers['content-language'] ?? 'Auswertung.zip');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(downloadUrl);
+      })
+      .catch(() => myToastError('Download fehlgeschlagen'))
+      .finally(() => setDownloading(false));
   }
-
-
-  function loadCities() {
-    doGetRequestAuth("cities", props.token).then(
-      res => {
-        setCities(
-          res.data.map(row => ({
-            key: row.cityNo,
-            cityName: row.name
-          }))
-        );
-      }
-    );
-  }
-
-  const columnsFF = [
-    {
-      title: 'Feuerwehr',
-      dataIndex: '',
-      key: 'cityName',
-      render: (e) => <Input value={e.cityName} onChange={(tx) => {
-        setCities(
-          cities.map((item) => {
-            return item.key === e.key ? {key: e.key, cityName: tx.target.value} : item;
-          })
-        );
-      }} />
-    },
-    {
-      title: '',
-      dataIndex: '',
-      key: 'x',
-      render: (e) => <SaveOutlined onClick={() => handleUpdateFF(e)} />
-    },
-    {
-      title: '',
-      dataIndex: '',
-      key: 'd',
-      render: (e) => <Popconfirm
-        title="Feuerwehr Löschen"
-        description="sicher?"
-        onConfirm={() => handleDeleteFF(e)}
-        okText="Löschen"
-        cancelText="Abbrechen"
-      ><DeleteOutlined /></Popconfirm>
-    },
-  ];
 
   return (
-    <div>
-      <Modal title="Feuerwehren Verwalten" open={isModalFFOpen} onCancel={handleModalFFCancel} footer={[
-        <Button key="cancle" onClick={handleModalFFCancel}>
-          Zurück
+    <>
+      <Title level={5} style={{ marginTop: 0 }}>Verwalten</Title>
+      <Space direction="vertical" size={10} style={{ display: 'flex', marginBottom: 24 }}>
+        <Button size="large" block icon={<TeamOutlined />} onClick={() => navigate('/userManagement')}>
+          Benutzer verwalten
         </Button>
-      ]}
+        <Button size="large" block icon={<TeamOutlined />} onClick={showFFModal}>
+          Feuerwehren verwalten
+        </Button>
+      </Space>
+
+      <Title level={5}>Auswertungen</Title>
+      <Space direction="vertical" size={10} style={{ display: 'flex' }}>
+        <Button
+          type="primary"
+          size="large"
+          block
+          icon={<DownloadOutlined />}
+          loading={downloading}
+          onClick={handleFFAuswertung}
+        >
+          {downloading ? 'Auswertung wird erstellt …' : 'Jahresauswertung Feuerwehren'}
+        </Button>
+      </Space>
+      {/* "Jahresauswertung AGW" war ein console.log ohne Funktion und ist
+          deshalb ausgeblendet, bis es sie wirklich gibt. */}
+
+      <Modal
+        title="Feuerwehren verwalten"
+        open={isModalFFOpen}
+        onCancel={() => setIsModalFFOpen(false)}
+        footer={[
+          <Button key="close" onClick={() => setIsModalFFOpen(false)}>
+            Zurück
+          </Button>,
+        ]}
       >
-      <Space.Compact style={{ width: '100%' }}>
-        <Input placeholder="Neue Feuerwehr" value={txtNewCity} onChange={(e)=>setTxtNewCity(e.target.value)}/>
-        <Button onClick={() => createNewCity()} type="primary">Anlegen</Button>
-      </Space.Compact>
-        <Table scroll={{x: 400}} dataSource={cities} columns={columnsFF} />
+        <Space.Compact style={{ width: '100%', marginBottom: 12 }}>
+          <Input
+            placeholder="Neue Feuerwehr"
+            value={txtNewCity}
+            onChange={(e) => setTxtNewCity(e.target.value)}
+            onPressEnter={createNewCity}
+          />
+          <Button onClick={createNewCity} type="primary" icon={<PlusOutlined />}>
+            Anlegen
+          </Button>
+        </Space.Compact>
+
+        {/* Vorher eine horizontal scrollende Tabelle in einem Modal in einem
+            230px breiten Container. Eine Liste braucht diese Breite nicht. */}
+        <List
+          dataSource={cities}
+          locale={{ emptyText: 'Keine Feuerwehren' }}
+          renderItem={(city) => (
+            <List.Item style={{ paddingInline: 0 }}>
+              <Space.Compact style={{ width: '100%' }}>
+                <Input
+                  value={city.cityName}
+                  aria-label={`Name von ${city.cityName}`}
+                  onChange={(e) =>
+                    setCities(
+                      cities.map((item) =>
+                        item.key === city.key ? { ...item, cityName: e.target.value } : item
+                      )
+                    )
+                  }
+                  onBlur={() => handleUpdateFF(city)}
+                  onPressEnter={() => handleUpdateFF(city)}
+                />
+                <Popconfirm
+                  title="Feuerwehr löschen?"
+                  okText="Löschen"
+                  okButtonProps={{ danger: true }}
+                  cancelText="Abbrechen"
+                  onConfirm={() => handleDeleteFF(city)}
+                >
+                  <Button danger icon={<DeleteOutlined />} aria-label={`${city.cityName} löschen`} />
+                </Popconfirm>
+              </Space.Compact>
+            </List.Item>
+          )}
+        />
+        <Card size="small" style={{ marginTop: 12, background: token.colorFillQuaternary }}>
+          Änderungen am Namen werden beim Verlassen des Feldes gespeichert.
+        </Card>
       </Modal>
-      <Divider titlePlacement="left">Verwalten</Divider>
-      <Row>
-        <Col span={24}>
-          <Button onClick={() => navigate('/userManagement')} className="ffInputFull marginButton" type="primary">AGW Verwalten</Button>
-        </Col>
-      </Row>
-      <Row>
-        <Col span={24}>
-          <Button onClick={() => showFFModal()} className="ffInputFull marginButton" type="primary">Feuerwehren Verwalten</Button>
-        </Col>
-      </Row>
-      <Divider titlePlacement="left">Auswertungen</Divider>
-      <Row>
-        <Col span={24}>
-          <Button onClick={() => console.log('aaa')} className="ffInputFull marginButton" type="primary">Jahresauswertung AGW</Button>
-        </Col>
-      </Row>
-      <Row>
-        <Col span={24}>
-          <Button onClick={() => handleFFAuswertung()} className="ffInputFull marginButton" type="primary">Jahresauswertung Feuerwehren</Button>
-        </Col>
-      </Row>
-    </div>
+    </>
   );
 }
 

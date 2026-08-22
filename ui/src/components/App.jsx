@@ -1,12 +1,15 @@
 import { Route, Routes, useLocation, useNavigate } from "react-router";
-import Planner from "./Planner";
-import { useEffect, useState } from 'react';
-import Home from "./Home";
-import Evaluation from "./Evaluation";
-import Search from "./Search";
-import Account from "./Account";
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { doGetRequestAuth } from "../helper/RequestHelper";
-import UserManagement from "./UserManagement";
+
+// Jeder Screen ein eigenes Bundle. Vorher lag die ganze App in einem Chunk
+// von rund 1,36 MB, den auch jemand laden musste, der nur Auftraege abhakt.
+const Home = lazy(() => import("./Home"));
+const Planner = lazy(() => import("./Planner"));
+const Search = lazy(() => import("./Search"));
+const Evaluation = lazy(() => import("./Evaluation"));
+const UserManagement = lazy(() => import("./UserManagement"));
+const Account = lazy(() => import("./Account"));
 import { myToastInfo } from "../helper/ToastHelper";
 import { Avatar, Dropdown, Layout, Skeleton, theme } from 'antd';
 import AppNav, { BOTTOM_NAV_HEIGHT, SIDER_WIDTH } from "./AppNav";
@@ -21,6 +24,7 @@ function App(props) {
   const [loggedPersNo, setLoggedPersNo] = useState();
   const [loggedFunctionNo, setLoggedFunctionNo] = useState();
   const [loggedInitials, setLoggedInitials] = useState();
+  const [loggedUsername, setLoggedUsername] = useState();
   const [isChangePasswordModalVisible, setIsChangePasswordModalVisible] = useState(false);
 
   const isMobile = useIsMobile();
@@ -35,6 +39,7 @@ function App(props) {
   useEffect(() => {
     doGetRequestAuth('checkToken', props.token).then((res) => {
       myToastInfo('Hallo ' + res.data.username);
+      setLoggedUsername(res.data.username);
       setLoggedInitials(res.data.username.split(' ').map(word => word[0]).join(''));
       setLoggedPersNo(res.data.persNo);
       setLoggedFunctionNo(res.data.functionNo);
@@ -78,6 +83,8 @@ function App(props) {
     token: props.token,
     loggedFunctionNo,
     loggedPersNo,
+    loggedUsername,
+    removeToken: props.removeToken,
   };
 
   return (
@@ -132,15 +139,17 @@ function App(props) {
                 boxSizing: 'border-box',
               }}
             >
-              <Routes>
-                <Route path="/home" element={<Home {...routeProps} />} />
-                <Route path="/planner/:editId?" element={<Planner {...routeProps} />} />
-                <Route path="/evaluation" element={<Evaluation {...routeProps} />} />
-                <Route path="/userManagement" element={<UserManagement {...routeProps} />} />
-                <Route path="/search" element={<Search {...routeProps} />} />
-                <Route path="/account" element={<Account {...routeProps} />} />
-                <Route path="/*" element={<Home {...routeProps} />} />
-              </Routes>
+              <Suspense fallback={<Skeleton active paragraph={{ rows: 6 }} />}>
+                <Routes>
+                  <Route path="/home" element={<Home {...routeProps} />} />
+                  <Route path="/planner/:editId?" element={<Planner {...routeProps} />} />
+                  <Route path="/evaluation" element={<Evaluation {...routeProps} />} />
+                  <Route path="/userManagement" element={<UserManagement {...routeProps} />} />
+                  <Route path="/search" element={<Search {...routeProps} />} />
+                  <Route path="/account" element={<Account {...routeProps} />} />
+                  <Route path="/*" element={<Home {...routeProps} />} />
+                </Routes>
+              </Suspense>
             </Content>
           </Layout>
         </Layout>

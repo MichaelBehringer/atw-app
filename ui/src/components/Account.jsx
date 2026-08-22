@@ -1,72 +1,77 @@
 import { useState } from "react";
-import {Col, Row, Input, Button, Divider, Modal} from 'antd';
-import { myToastError, myToastSuccess } from "../helper/ToastHelper";
-import { doPostRequestAuth } from "../helper/RequestHelper";
+import { Button, Card, Descriptions, Segmented, Space, Typography } from 'antd';
+import { LogoutOutlined } from "@ant-design/icons";
+import { isATW, isAdmin, isExternal } from "../helper/helpFunctions";
+import { useColorSchemeSetting } from "../colorScheme";
+import ChangePasswordModal from "./ChangePasswordModal";
 
+const { Title, Text } = Typography;
+
+function rollenName(functionNo) {
+  if (isATW(functionNo)) return 'Atemschutzgerätewart';
+  if (isAdmin(functionNo)) return 'Administrator';
+  if (isExternal(functionNo)) return 'Externe Feuerwehr';
+  return 'Unbekannt';
+}
 
 function Account(props) {
-  const [isModalPWOpen, setIsModalPWOpen] = useState(false);
-
-  const [txtPWOld, settxtPWOld] = useState();
-  const [txtPWNew1, settxtPWNew1] = useState();
-  const [txtPWNew2, settxtPWNew2] = useState();
-
-  function showPWModal() {
-    setIsModalPWOpen(true);
-  };
-
-  function handleModalPWCancel() {
-    setIsModalPWOpen(false);
-    settxtPWOld()
-    settxtPWNew1()
-    settxtPWNew2()
-  };
-
-  function handleModalPWSave() {
-    if(!txtPWOld || !txtPWNew1 || !txtPWNew2) {
-      myToastError("Alle Felder füllen")
-      return
-    }
-    if(txtPWNew1 !== txtPWNew2) {
-      myToastError("Neue Passwörter stimmen nicht überein")
-      return
-    }
-    const params = {persNo: props.loggedPersNo, password: txtPWNew1, passwordOld: txtPWOld};
-    doPostRequestAuth("password", params, props.token).then(() => {
-        setIsModalPWOpen(false);
-        settxtPWOld()
-        settxtPWNew1()
-        settxtPWNew2()
-        myToastSuccess("Passwort erfolgreich geändert")
-    }, () => {
-        myToastError("Altes Passwort stimmt nicht")
-      }
-    );
-  };
+  const [pwOpen, setPwOpen] = useState(false);
+  const { preference, setPreference } = useColorSchemeSetting();
 
   return (
-    <div>
-      <Modal title="Passwort Ändern" open={isModalPWOpen} onCancel={handleModalPWCancel} footer={[
-        <Button type="primary" key="save" onClick={handleModalPWSave}>
-        Ändern
-      </Button>,
-        <Button type="default" key="cancle" onClick={handleModalPWCancel}>
-          Abbrechen
-        </Button>
-      ]}>
-        <Input type="password" value={txtPWOld} onChange={(e)=>settxtPWOld(e.target.value)} placeholder="Passwort alt" />
-        <Input type="password" value={txtPWNew1} onChange={(e)=>settxtPWNew1(e.target.value)} placeholder="Passwort neu" />
-        <Input type="password" value={txtPWNew2} onChange={(e)=>settxtPWNew2(e.target.value)} placeholder="Passwort neu" />
-      </Modal>
-      <Divider titlePlacement="left">Account</Divider>
-      <Row>
-        <Col span={24}>
-          <Button onClick={() => showPWModal()} className="ffInputFull marginButton" type="primary">Passwort Ändern</Button>
-        </Col>
-      </Row>
-      <Divider titlePlacement="left">Benachrichtigungen</Divider>
+    <>
+      <Title level={5} style={{ marginTop: 0 }}>Angemeldet als</Title>
+      <Card size="small" style={{ marginBottom: 24 }}>
+        <Descriptions
+          column={1}
+          size="small"
+          items={[
+            { key: 'name', label: 'Name', children: props.loggedUsername ?? '–' },
+            { key: 'role', label: 'Rolle', children: rollenName(props.loggedFunctionNo) },
+          ]}
+        />
+      </Card>
 
-    </div>
+      <Title level={5}>Erscheinungsbild</Title>
+      <Segmented
+        block
+        value={preference}
+        onChange={setPreference}
+        style={{ marginBottom: 8 }}
+        options={[
+          { value: 'system', label: 'Automatisch' },
+          { value: 'light', label: 'Hell' },
+          { value: 'dark', label: 'Dunkel' },
+        ]}
+      />
+      <Text type="secondary">
+        „Automatisch" folgt der Einstellung des Geräts.
+      </Text>
+
+      <Title level={5} style={{ marginTop: 24 }}>Sicherheit</Title>
+      <Space direction="vertical" size={10} style={{ display: 'flex' }}>
+        <Button size="large" block onClick={() => setPwOpen(true)}>
+          Passwort ändern
+        </Button>
+        <Button size="large" block danger icon={<LogoutOutlined />} onClick={props.removeToken}>
+          Abmelden
+        </Button>
+      </Space>
+
+      <div style={{ marginTop: 32, textAlign: 'center' }}>
+        <Text type="secondary">Atemschutzpflegestelle · Version {__APP_VERSION__}</Text>
+      </div>
+
+      {/* Bewusst dieselbe Komponente wie im Profil-Menü. Vorher gab es hier eine
+          zweite, eigene Umsetzung derselben Maske. */}
+      <ChangePasswordModal
+        visible={pwOpen}
+        setIsVisible={setPwOpen}
+        loggedPersNo={props.loggedPersNo}
+        token={props.token}
+        onClose={() => setPwOpen(false)}
+      />
+    </>
   );
 }
 

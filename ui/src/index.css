@@ -69,3 +69,23 @@ a,
 .ant-table-thead .ant-table-cell {
   word-break: break-word;
 }
+
+/*
+ * Hintergrund des Login-Screens.
+ *
+ * background_login.jpg ist 1,3 MB gross - auf dem Handy waere das der groesste
+ * Einzelposten beim allerersten Aufruf, und dort verdeckt die Login-Karte das
+ * Bild ohnehin fast vollstaendig. Deshalb bewusst als Media-Query und nicht
+ * ueber useIsMobile: nur so entsteht die Netzwerkanfrage gar nicht erst.
+ */
+.login-bg {
+  background: linear-gradient(160deg, #7d0a1d 0%, #c8102e 55%, #8f1f2c 100%);
+  background-size: cover;
+  background-position: center;
+}
+
+@media (min-width: 768px) {
+  .login-bg {
+    background-image: url(/background_login.jpg);
+  }
+}

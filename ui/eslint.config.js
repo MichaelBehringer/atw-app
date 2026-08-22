@@ -13,7 +13,12 @@ export default [
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
-      globals: { ...globals.browser, ...globals.es2025 },
+      globals: {
+        ...globals.browser,
+        ...globals.es2025,
+        // Von vite.config.js per define eingesetzt.
+        __APP_VERSION__: 'readonly',
+      },
       parserOptions: {
         ecmaFeatures: { jsx: true },
       },

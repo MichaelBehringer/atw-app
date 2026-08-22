@@ -34,13 +34,10 @@ function Authentication(props) {
 	}
 
 	return (
-		<div style={{
+		<div className="login-bg" style={{
 			// 100dvh statt 100vh: auf iOS Safari ist 100vh groesser als der
 			// sichtbare Bereich, der Inhalt rutscht sonst hinter die Browserleiste.
 			minHeight: '100dvh',
-			backgroundImage: 'url(/background_login.jpg)',
-			backgroundSize: 'cover',
-			backgroundPosition: 'center',
 			display: 'flex',
 			justifyContent: 'center',
 			alignItems: 'center',
