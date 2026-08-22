@@ -64,7 +64,12 @@ func main() {
 
 	router.GET("/file", file)
 
-	router.Run(Env("ATW_LISTEN_ADDR", ":8080"))
+	adresse := Env("ATW_LISTEN_ADDR", ":8080")
+	// Eigene Zeile, weil gin mit GIN_MODE=release beim Start nichts ausgibt.
+	// Ohne sie ist "docker compose logs server" leer und man weiss nicht, ob der
+	// Dienst laeuft oder gar nicht gestartet ist.
+	log.Printf("Server lauscht auf %s", adresse)
+	router.Run(adresse)
 }
 
 func login(c *gin.Context) {
