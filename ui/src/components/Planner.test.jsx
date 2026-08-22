@@ -86,7 +86,7 @@ describe('Planner', () => {
     await nummernWaehlen(user, 'Flaschen füllen', [12, 15, 22])
 
     await user.type(screen.getByPlaceholderText('z. B. 1,5'), '2')
-    await user.click(screen.getByRole('button', { name: /Geräte speichern/ }))
+    await user.click(screen.getByRole('button', { name: 'Speichern' }))
 
     const [path, params] = letzterAufruf()
     expect(path).toBe('createEntry')
@@ -108,22 +108,26 @@ describe('Planner', () => {
     await nummernWaehlen(user, 'Masken prüfen', [7, 3])
 
     await user.type(screen.getByPlaceholderText('z. B. 1,5'), '1')
-    await user.click(screen.getByRole('button', { name: /Geräte speichern/ }))
+    await user.click(screen.getByRole('button', { name: 'Speichern' }))
 
     expect(letzterAufruf()[1].maskenPruefenNr).toBe('3,7')
   })
 
-  it('zeigt die Anzahl an der Arbeitsart und im Speichern-Button', async () => {
+  it('zeigt Anzahl und gewaehlte Nummern in der Zeile der Arbeitsart', async () => {
     const user = userEvent.setup()
     renderPlanner()
 
     await screen.findByRole('button', { name: /^Flaschen füllen/ })
-    expect(screen.getByRole('button', { name: 'Speichern' })).toBeInTheDocument()
-
     await nummernWaehlen(user, 'Flaschen füllen', [12, 15])
 
-    expect(await screen.findByRole('button', { name: '2 Geräte speichern' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^Flaschen füllen 2/ })).toBeInTheDocument()
+    // Die Nummern stehen in der Zeile, damit man sie ohne Antippen sieht.
+    // Gezielt ueber die Zeile geprueft: das geschlossene Sheet liegt noch im
+    // DOM und enthaelt denselben Text.
+    expect(
+      await screen.findByRole('button', { name: /^Flaschen füllen 12 · 15 2/ }),
+    ).toBeInTheDocument()
+    // Der Speichern-Button traegt keine Anzahl mehr.
+    expect(screen.getByRole('button', { name: 'Speichern' })).toBeInTheDocument()
   })
 
   it('verlangt mindestens eine Gerätenummer', async () => {
@@ -146,7 +150,7 @@ describe('Planner', () => {
     await screen.findByRole('button', { name: /^Flaschen füllen/ })
     await feuerwehrWaehlen(user)
     await nummernWaehlen(user, 'Flaschen füllen', [12])
-    await user.click(screen.getByRole('button', { name: /Gerät speichern/ }))
+    await user.click(screen.getByRole('button', { name: 'Speichern' }))
 
     expect(putAuth).not.toHaveBeenCalled()
     expect(await screen.findByText('Bitte die Arbeitszeit angeben')).toBeInTheDocument()
@@ -173,7 +177,8 @@ describe('Planner', () => {
     expect(screen.queryByPlaceholderText('z. B. 1,5')).not.toBeInTheDocument()
 
     await nummernWaehlen(user, 'Flaschen füllen', [5])
-    await user.click(screen.getByRole('button', { name: /Gerät speichern/ }))
+    // Externe melden eine Anlieferung an, sie erfassen keine Arbeit.
+    await user.click(screen.getByRole('button', { name: 'Anlieferung melden' }))
 
     const [path, params] = letzterAufruf()
     expect(path).toBe('createEntryProposal')
@@ -189,7 +194,7 @@ describe('Planner', () => {
     await screen.findByRole('button', { name: /^Flaschen füllen/ })
     await nummernWaehlen(user, 'Flaschen füllen', [12])
     await user.type(screen.getByPlaceholderText('z. B. 1,5'), '1')
-    await user.click(screen.getByRole('button', { name: /Gerät speichern/ }))
+    await user.click(screen.getByRole('button', { name: 'Speichern' }))
 
     expect(putAuth).not.toHaveBeenCalled()
     expect(

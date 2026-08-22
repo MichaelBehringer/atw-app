@@ -194,7 +194,7 @@ function Search(props) {
         open={Boolean(entwurf)}
         onClose={() => setEntwurf(undefined)}
         placement="bottom"
-        height={isMobile ? '100%' : '85%'}
+        height={isMobile ? '100dvh' : '85%'}
         title={entwurf ? `Eintrag #${entwurf.key} · ${entwurf.city || 'ohne Feuerwehr'}` : ''}
         footer={
           <div style={{ display: 'flex', gap: 12, paddingBottom: 'var(--safe-bottom)' }}>

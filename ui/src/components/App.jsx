@@ -127,15 +127,21 @@ function App(props) {
             </Header>
             <Content
               style={{
-                margin: isMobile ? '12px 12px 0' : '24px auto',
+                // Am Handy randlos: 'width: 100%' zusammen mit seitlichen
+                // Margins ergab 100% + 24px und damit eine horizontal
+                // verschiebbare Seite. Ohne Rand gibt es das Problem nicht und
+                // es sind 24px mehr Platz für den Inhalt.
+                margin: isMobile ? 0 : '24px auto',
                 padding: isMobile ? 16 : 24,
                 background: colorBgContainer,
-                borderRadius: borderRadiusLG,
+                borderRadius: isMobile ? 0 : borderRadiusLG,
                 // Platz für die Bottom-Navigation, damit das letzte Element
                 // nicht dahinter liegt.
-                marginBottom: isMobile ? `calc(${BOTTOM_NAV_HEIGHT}px + var(--safe-bottom) + 12px)` : 24,
+                marginBottom: isMobile
+                  ? `calc(${BOTTOM_NAV_HEIGHT}px + var(--safe-bottom))`
+                  : 24,
                 maxWidth: isMobile ? undefined : 1200,
-                width: '100%',
+                width: isMobile ? 'auto' : '100%',
                 boxSizing: 'border-box',
               }}
             >

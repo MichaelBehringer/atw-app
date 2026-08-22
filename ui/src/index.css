@@ -5,16 +5,44 @@
  */
 
 :root {
-  /* Insets fuer Notch und Home-Indicator. Ohne viewport-fit=cover in der
-     index.html sind sie 0, deshalb der Fallback. */
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-left: env(safe-area-inset-left, 0px);
-  --safe-right: env(safe-area-inset-right, 0px);
+  /*
+   * Insets fuer Notch und Home-Indicator.
+   *
+   * Im normalen Browser bewusst 0: dort aendert env(safe-area-inset-bottom)
+   * seinen Wert, waehrend die Adressleiste beim Scrollen ein- und ausfaehrt -
+   * die Bottom-Navigation wuerde dadurch mitten im Scrollen ihre Hoehe
+   * aendern. Ausserdem haelt der Browser den Bereich ueber dem
+   * Home-Indicator schon selbst frei.
+   *
+   * Nur als installierte App gibt es keine Browserleiste, dort sind die
+   * Insets konstant und werden gebraucht.
+   */
+  --safe-top: 0px;
+  --safe-bottom: 0px;
+  --safe-left: 0px;
+  --safe-right: 0px;
 
   /* Hoehe der Bottom-Navigation, damit Seiteninhalte darunter nicht
      verschwinden. */
   --bottom-nav-height: 60px;
+}
+
+@media (display-mode: standalone) {
+  :root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+  }
+}
+
+/* Nichts darf horizontal ueberlaufen. Fuer den Fall, dass irgendwo doch ein
+   zu breites Element auftaucht, soll es abgeschnitten werden statt die ganze
+   Seite seitlich verschiebbar zu machen. */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 html {

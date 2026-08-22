@@ -2,6 +2,7 @@ import { App as AntApp, ConfigProvider } from 'antd'
 import deDE from 'antd/locale/de_DE'
 import dayjs from 'dayjs'
 import 'dayjs/locale/de'
+import customParseFormat from 'dayjs/plugin/customParseFormat'
 import { useEffect } from 'react'
 import { ColorSchemeContext } from './colorScheme'
 import { registerMessageInstance } from './helper/ToastHelper'
@@ -12,6 +13,11 @@ import { THEME_COLOR_DARK, THEME_COLOR_LIGHT, buildTheme } from './theme'
 // hier. Ohne diese Zeile formatiert dayjs auf Englisch, obwohl 'dayjs/locale/de'
 // an mehreren Stellen importiert wird.
 dayjs.locale('de')
+
+// Ohne dieses Plugin ignoriert dayjs das Formatargument: dayjs('20.05.2024',
+// 'DD.MM.YYYY') ergibt dann Invalid Date. Das Backend liefert Datumsangaben
+// genau in dieser Schreibweise, etwa beim Laden eines Auftrags zum Bearbeiten.
+dayjs.extend(customParseFormat)
 
 // Hält die theme-color-Angabe im Dokument mit dem aktiven Schema synchron.
 // Sie färbt bei der installierten App die Statusleiste - bliebe sie fest,

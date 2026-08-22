@@ -171,7 +171,7 @@ function UserManagement(props) {
         open={Boolean(entwurf)}
         onClose={() => setEntwurf(undefined)}
         placement="bottom"
-        height={isMobile ? '100%' : '70%'}
+        height={isMobile ? '100dvh' : '70%'}
         title={entwurf ? `${entwurf.firstname} ${entwurf.lastname}` : ''}
         footer={
           <div style={{ display: 'flex', gap: 12, paddingBottom: 'var(--safe-bottom)' }}>

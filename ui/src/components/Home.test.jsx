@@ -176,4 +176,34 @@ describe('Home', () => {
 
     expect(await screen.findByText('Keine offenen Aufträge')).toBeInTheDocument()
   })
+
+  it('hakt mit "Alles auswaehlen" den ganzen Auftrag ab', async () => {
+    const user = userEvent.setup()
+    renderHome()
+    await sheetOeffnenUndZeitEintragen(user)
+
+    // Der haeufigste Fall ist "alles erledigt" - ein Tipp statt drei.
+    await user.click(screen.getByRole('button', { name: 'Alles auswählen' }))
+
+    await user.click(screen.getByRole('button', { name: 'Auftrag abschließen' }))
+
+    const params = letzteMeldung()
+    expect(params.workingPoints).toContain('root')
+    expect(params.workingPoints).toEqual(expect.arrayContaining(['ff#12', 'ff#15', 'mp#3']))
+  })
+
+  it('zeigt den Gesamtfortschritt und kann die Auswahl wieder aufheben', async () => {
+    const user = userEvent.setup()
+    renderHome()
+    await sheetOeffnenUndZeitEintragen(user)
+
+    expect(await screen.findByText('0 von 3 erledigt')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Alles auswählen' }))
+    expect(await screen.findByText('3 von 3 erledigt')).toBeInTheDocument()
+
+    // Ist alles gewaehlt, wird derselbe Knopf zum Aufheben.
+    await user.click(screen.getByRole('button', { name: 'Alles abwählen' }))
+    expect(await screen.findByText('0 von 3 erledigt')).toBeInTheDocument()
+  })
 })

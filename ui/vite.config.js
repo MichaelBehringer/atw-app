@@ -61,6 +61,10 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
   server: {
+    // Auf allen Netzwerkschnittstellen lauschen, nicht nur auf localhost.
+    // Sonst ist der Dev-Server vom Handy im gleichen WLAN nicht erreichbar -
+    // und genau dort soll diese App bedient werden.
+    host: true,
     port: 3000,
     proxy: {
       '/server': {

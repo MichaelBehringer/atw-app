@@ -8,6 +8,7 @@ import { doGetRequestAuth, doPutRequestAuth } from '../helper/RequestHelper';
 import { myToastError, myToastSuccess } from '../helper/ToastHelper';
 import { WORK_TYPES } from '../helper/auftrag';
 import { getCityToID, getUserToID, isAdmin, isExternal } from '../helper/helpFunctions';
+import useIsMobile from '../hooks/useIsMobile';
 import NummernPicker from './NummernPicker';
 
 const { TextArea } = Input;
@@ -47,11 +48,12 @@ function buildWorkPayload(numbers) {
 // einem Tooltip, den es auf Touch nicht gibt), rechts die abgeleitete Anzahl.
 // Bewusst auf Modulebene - innerhalb von Planner definiert waere sie bei jedem
 // Render ein neuer Komponententyp und React wuerde den Teilbaum neu aufbauen.
-function WorkTypeRow({ type, count, disabled, last, token, onOpen }) {
+function WorkTypeRow({ type, numbers, last, token, onOpen }) {
+  const count = numbers.length;
+
   return (
     <button
       type="button"
-      disabled={disabled}
       onClick={onOpen}
       style={{
         display: 'flex',
@@ -60,18 +62,37 @@ function WorkTypeRow({ type, count, disabled, last, token, onOpen }) {
         gap: 12,
         width: '100%',
         minHeight: 52,
-        padding: '0 4px',
+        padding: '6px 4px',
         background: 'transparent',
         border: 'none',
         borderBottom: last ? 'none' : `1px solid ${token.colorBorderSecondary}`,
-        cursor: disabled ? 'not-allowed' : 'pointer',
+        cursor: 'pointer',
         color: token.colorText,
         fontSize: 16,
         textAlign: 'left',
       }}
     >
-      <span>{type.label}</span>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <span style={{ minWidth: 0 }}>
+        <span style={{ display: 'block' }}>{type.label}</span>
+        {/* Die Nummern stehen in der Zeile, damit man sie ohne Antippen sieht.
+            Wer eine alte Anlieferung nur ansieht, kommt so ohne Umweg an die
+            Information. */}
+        {count > 0 && (
+          <span
+            style={{
+              display: 'block',
+              fontSize: 13,
+              color: token.colorTextSecondary,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {numbers.join(' · ')}
+          </span>
+        )}
+      </span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
         <span
           style={{
             fontVariantNumeric: 'tabular-nums',
@@ -91,6 +112,7 @@ function Planner(props) {
   const { editId } = useParams();
   const navigate = useNavigate();
   const { token } = theme.useToken();
+  const isMobile = useIsMobile();
 
   const [users, setUsers] = useState([]);
   const [cities, setCities] = useState([]);
@@ -245,8 +267,7 @@ function Planner(props) {
         <WorkTypeRow
           key={k}
           type={WORK_TYPE_BY_KEY[k]}
-          count={numbers[k]?.length ?? 0}
-          disabled={fieldsLocked}
+          numbers={numbers[k] ?? []}
           last={i === group.keys.length - 1}
           token={token}
           onOpen={() => setPicker(k)}
@@ -296,7 +317,16 @@ function Planner(props) {
           style={{ marginBottom: 8 }}
         />
 
-        <Space size={12} style={{ display: 'flex' }} align="start">
+        <div
+          style={{
+            display: 'flex',
+            // Am Handy untereinander, damit das Auswahlfenster des Datums die
+            // volle Breite als Anker hat und nicht ueber den linken Rand
+            // hinausklappt.
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: 12,
+          }}
+        >
           {!readOnlyExtern && (
             <Form.Item label="Arbeitszeit (h)" style={{ flex: 1 }} required>
               <InputNumber
@@ -320,10 +350,13 @@ function Planner(props) {
               onChange={setDatum}
               disabled={fieldsLocked}
               allowClear={false}
+              // Kein Tastaturfeld: das Datum wird ueber den Kalender gewaehlt.
+              inputReadOnly
+              placement="bottomLeft"
               style={{ width: '100%' }}
             />
           </Form.Item>
-        </Space>
+        </div>
       </Form>
 
       {/* Klebende Leiste: der Speichern-Button lag vorher rund 900px unter dem
@@ -353,9 +386,7 @@ function Planner(props) {
           disabled={fieldsLocked}
           onClick={handleSave}
         >
-          {totalItems > 0
-            ? `${totalItems} ${totalItems === 1 ? 'Gerät' : 'Geräte'} speichern`
-            : 'Speichern'}
+          {readOnlyExtern ? 'Anlieferung melden' : 'Speichern'}
         </Button>
       </div>
 
@@ -363,6 +394,7 @@ function Planner(props) {
         open={picker !== null}
         title={picker ? WORK_TYPE_BY_KEY[picker].label : ''}
         value={picker ? numbers[picker] : []}
+        readOnly={fieldsLocked}
         onClose={() => setPicker(null)}
         onSubmit={(list) => {
           setNumbers((prev) => ({ ...prev, [picker]: list }));

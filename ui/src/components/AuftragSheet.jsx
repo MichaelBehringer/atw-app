@@ -1,4 +1,4 @@
-import { Button, Checkbox, Collapse, DatePicker, Drawer, Empty, Form, InputNumber, Space, theme } from 'antd'
+import { Button, Checkbox, Collapse, DatePicker, Drawer, Empty, Form, InputNumber, theme } from 'antd'
 import locale from 'antd/es/date-picker/locale/de_DE'
 import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
@@ -51,9 +51,14 @@ export default function AuftragSheet({ entry, open, onClose, onSubmit, saving })
 
   const complete = isComplete(checkedKeys, sections)
   const checkedCount = buildWorkingPoints(checkedKeys, sections).filter((k) => k.includes('#')).length
+  const alleSchluessel = sections.flatMap((s) => s.items.map((i) => i.key))
 
   function toggle(key, checked) {
     setCheckedKeys((prev) => (checked ? [...prev, key] : prev.filter((k) => k !== key)))
+  }
+
+  function toggleAlles(selectAll) {
+    setCheckedKeys(selectAll ? alleSchluessel : [])
   }
 
   function toggleSection(section, selectAll) {
@@ -120,13 +125,22 @@ export default function AuftragSheet({ entry, open, onClose, onSubmit, saving })
       open={open}
       onClose={onClose}
       placement="bottom"
-      height={isMobile ? '100%' : '85%'}
+      height={isMobile ? '100dvh' : '85%'}
       title={entry ? `Auftrag #${entry.key} · ${entry.city}` : 'Auftrag'}
       styles={{ body: { paddingTop: 8 } }}
       footer={
         <div style={{ paddingBottom: 'var(--safe-bottom)' }}>
           <Form layout="vertical" style={{ marginBottom: 12 }}>
-            <Space size={12} style={{ display: 'flex' }} align="start">
+            <div
+              style={{
+                display: 'flex',
+                // Am Handy untereinander: nebeneinander sass das Datumsfeld in
+                // der rechten Haelfte, und sein Auswahlfenster klappte ueber
+                // den linken Bildschirmrand hinaus.
+                flexDirection: isMobile ? 'column' : 'row',
+                gap: 12,
+              }}
+            >
               <Form.Item label="Arbeitszeit (h)" style={{ marginBottom: 0, flex: 1 }} required>
                 <InputNumber
                   value={arbeitszeit}
@@ -147,10 +161,14 @@ export default function AuftragSheet({ entry, open, onClose, onSubmit, saving })
                   value={datum}
                   onChange={setDatum}
                   allowClear={false}
+                  // Kein Tastaturfeld: das Datum wird ueber den Kalender
+                  // gewaehlt, Eintippen braucht hier niemand.
+                  inputReadOnly
+                  placement="bottomLeft"
                   style={{ width: '100%' }}
                 />
               </Form.Item>
-            </Space>
+            </div>
           </Form>
           {/* Die Beschriftung sagt, was passiert: bei Teilerledigung bleibt der
               Auftrag offen, bei Vollerledigung wird er geschlossen. Diesen
@@ -175,7 +193,31 @@ export default function AuftragSheet({ entry, open, onClose, onSubmit, saving })
       {sections.length === 0 ? (
         <Empty description="Für diesen Auftrag sind keine Arbeitspunkte hinterlegt." />
       ) : (
-        <Collapse items={collapseItems} defaultActiveKey={activeKeys} ghost size="large" />
+        <>
+          {/* Der häufigste Fall ist "alles erledigt" - das soll ein Tipp sein
+              und nicht acht. */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              marginBottom: 8,
+            }}
+          >
+            <span style={{ color: token.colorTextSecondary }}>
+              {checkedCount} von {alleSchluessel.length} erledigt
+            </span>
+            <Button
+              type={complete ? 'default' : 'primary'}
+              ghost={!complete}
+              onClick={() => toggleAlles(!complete)}
+            >
+              {complete ? 'Alles abwählen' : 'Alles auswählen'}
+            </Button>
+          </div>
+          <Collapse items={collapseItems} defaultActiveKey={activeKeys} ghost size="large" />
+        </>
       )}
     </Drawer>
   )
