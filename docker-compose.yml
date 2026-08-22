@@ -8,11 +8,13 @@ services:
     extra_hosts:
     - "host.docker.internal:host-gateway"
     environment:
-      # Siehe server/.env.example. Ohne diese Werte greifen die Defaults aus
-      # dem Quellcode, die identisch mit dem bisherigen Verhalten sind.
-      ATW_DB_DSN: "ffwadmin:gnidmewff@tcp(host.docker.internal:3306)/ffw"
+      # Die Werte kommen aus der Datei .env neben dieser docker-compose.yml.
+      # Sie ist gitignored - Zugangsdaten gehoeren nicht ins Repository.
+      # Vorlage: .env.example. Fehlt ein Wert, bricht "docker compose up" mit
+      # einer Meldung ab, statt stillschweigend einen Standard zu nehmen.
+      ATW_DB_DSN: ${ATW_DB_DSN:?ATW_DB_DSN fehlt - siehe .env.example}
+      ATW_JWT_SECRET: ${ATW_JWT_SECRET:?ATW_JWT_SECRET fehlt - siehe .env.example}
       ATW_LISTEN_ADDR: ":8080"
-      ATW_JWT_SECRET: "my_secret_key"
       GIN_MODE: "release"
       # Benachrichtigungen sind hier bewusst ausdruecklich an.
       ATW_NTFY_ENABLED: "true"

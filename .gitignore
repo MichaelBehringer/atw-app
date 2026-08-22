@@ -1,1 +1,4 @@
 backup/gitRepo/
+
+# Zugangsdaten der Produktivumgebung
+.env
