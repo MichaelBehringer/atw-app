@@ -115,7 +115,7 @@ function Home(props) {
             block
             style={{ marginTop: 14 }}
             onClick={() => openEntry(entry)}
-            icon={readOnly ? <EyeOutlined /> : undefined}
+            icon={readOnly ? <EyeOutlined aria-hidden /> : undefined}
           >
             {readOnly ? 'Ansehen' : 'Abarbeiten'}
           </Button>

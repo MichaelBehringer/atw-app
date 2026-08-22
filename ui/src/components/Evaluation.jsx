@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Button, Card, Input, List, Modal, Popconfirm, Space, Typography, theme } from 'antd';
+import { useMemo, useState } from "react";
+import { Button, Card, Form, Input, List, Modal, Popconfirm, Select, Space, Typography, theme } from 'antd';
 import { DeleteOutlined, DownloadOutlined, PlusOutlined, TeamOutlined } from "@ant-design/icons";
 import { myToastError, myToastSuccess } from "../helper/ToastHelper";
 import { doDeleteRequestAuth, doGetRequestAuth, doGetRequestBlob, doPostRequestAuth, doPutRequestAuth } from "../helper/RequestHelper";
@@ -8,11 +8,28 @@ import useCloseOnBack from "../hooks/useCloseOnBack";
 
 const { Title } = Typography;
 
+// Auswahl der letzten Jahre. Es gibt keinen Endpunkt, der die Jahre mit Daten
+// liefert, deshalb eine feste Spanne ab 2020 - das deckt den Bestand ab und
+// waechst von selbst mit.
+const ERSTES_JAHR = 2020;
+
+function jahresOptionen() {
+  const aktuell = new Date().getFullYear();
+  const jahre = [];
+  for (let jahr = aktuell; jahr >= ERSTES_JAHR; jahr -= 1) {
+    jahre.push({ value: jahr, label: String(jahr) });
+  }
+  return jahre;
+}
+
 function Evaluation(props) {
   const [isModalFFOpen, setIsModalFFOpen] = useState(false);
   const [cities, setCities] = useState([]);
   const [txtNewCity, setTxtNewCity] = useState('');
   const [downloading, setDownloading] = useState(false);
+  // Vorbelegt mit dem laufenden Jahr.
+  const [jahr, setJahr] = useState(() => new Date().getFullYear());
+  const jahre = useMemo(() => jahresOptionen(), []);
   const navigate = useNavigate();
   const { token } = theme.useToken();
 
@@ -64,12 +81,15 @@ function Evaluation(props) {
   // gut eine Sekunde. Ohne Rückmeldung wirkt der Knopf kaputt.
   function handleFFAuswertung() {
     setDownloading(true);
-    doGetRequestBlob('file')
+    doGetRequestBlob(`file?year=${jahr}`)
       .then((response) => {
         const downloadUrl = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = downloadUrl;
-        link.setAttribute('download', response.headers['content-language'] ?? 'Auswertung.zip');
+        link.setAttribute(
+          'download',
+          response.headers['content-language'] ?? `Auswertung_${jahr}.zip`
+        );
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -83,25 +103,38 @@ function Evaluation(props) {
     <>
       <Title level={5} style={{ marginTop: 0 }}>Verwalten</Title>
       <Space direction="vertical" size={10} style={{ display: 'flex', marginBottom: 24 }}>
-        <Button size="large" block icon={<TeamOutlined />} onClick={() => navigate('/userManagement')}>
+        <Button size="large" block icon={<TeamOutlined aria-hidden />} onClick={() => navigate('/userManagement')}>
           Benutzer verwalten
         </Button>
-        <Button size="large" block icon={<TeamOutlined />} onClick={showFFModal}>
+        <Button size="large" block icon={<TeamOutlined aria-hidden />} onClick={showFFModal}>
           Feuerwehren verwalten
         </Button>
       </Space>
 
       <Title level={5}>Auswertungen</Title>
+      <Form layout="vertical">
+        <Form.Item label="Jahr" style={{ marginBottom: 12 }}>
+          <Select
+            aria-label="Jahr"
+            value={jahr}
+            options={jahre}
+            onChange={setJahr}
+            style={{ width: '100%', maxWidth: 200 }}
+          />
+        </Form.Item>
+      </Form>
       <Space direction="vertical" size={10} style={{ display: 'flex' }}>
         <Button
           type="primary"
           size="large"
           block
-          icon={<DownloadOutlined />}
+          icon={<DownloadOutlined aria-hidden />}
           loading={downloading}
           onClick={handleFFAuswertung}
         >
-          {downloading ? 'Auswertung wird erstellt …' : 'Jahresauswertung Feuerwehren'}
+          {downloading
+            ? 'Auswertung wird erstellt …'
+            : `Jahresauswertung ${jahr} herunterladen`}
         </Button>
       </Space>
       {/* "Jahresauswertung AGW" war ein console.log ohne Funktion und ist
@@ -124,7 +157,7 @@ function Evaluation(props) {
             onChange={(e) => setTxtNewCity(e.target.value)}
             onPressEnter={createNewCity}
           />
-          <Button onClick={createNewCity} type="primary" icon={<PlusOutlined />}>
+          <Button onClick={createNewCity} type="primary" icon={<PlusOutlined aria-hidden />}>
             Anlegen
           </Button>
         </Space.Compact>
@@ -157,7 +190,7 @@ function Evaluation(props) {
                   cancelText="Abbrechen"
                   onConfirm={() => handleDeleteFF(city)}
                 >
-                  <Button danger icon={<DeleteOutlined />} aria-label={`${city.cityName} löschen`} />
+                  <Button danger icon={<DeleteOutlined aria-hidden />} aria-label={`${city.cityName} löschen`} />
                 </Popconfirm>
               </Space.Compact>
             </List.Item>

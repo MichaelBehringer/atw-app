@@ -152,7 +152,7 @@ function UserManagement(props) {
         type="primary"
         size="large"
         block={isMobile}
-        icon={<PlusOutlined />}
+        icon={<PlusOutlined aria-hidden />}
         onClick={() => setAddOpen(true)}
         style={{ marginBottom: 16 }}
       >

@@ -5,6 +5,8 @@ import (
 	. "ffAPI/middleware"
 	. "ffAPI/models"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/static"
@@ -233,9 +235,22 @@ func createCity(c *gin.Context) {
 	}
 }
 
+// requestedYear liest das Auswertungsjahr aus dem Query-Parameter "year".
+// Ohne Angabe gilt das laufende Jahr - vorher stand das Jahr fest im Code und
+// musste jaehrlich geaendert werden. Unplausible Werte werden verworfen statt
+// an die PDF-Erzeugung durchgereicht.
+func requestedYear(c *gin.Context) int {
+	current := time.Now().Year()
+	value, err := strconv.Atoi(c.Query("year"))
+	if err != nil || value < 2000 || value > current+1 {
+		return current
+	}
+	return value
+}
+
 func file(c *gin.Context) {
 	numbers := [21]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 23, 24, 25}
-	pathZip, fileZip := CreateCityPDFs(numbers[:], 2025)
+	pathZip, fileZip := CreateCityPDFs(numbers[:], requestedYear(c))
 	c.Writer.Header().Set("Content-Disposition", "attachment; filename="+fileZip)
 	c.Header("Content-Language", fileZip)
 	c.File(pathZip + fileZip)

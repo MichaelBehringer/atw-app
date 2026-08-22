@@ -53,7 +53,7 @@ function Account(props) {
         <Button size="large" block onClick={() => setPwOpen(true)}>
           Passwort ändern
         </Button>
-        <Button size="large" block danger icon={<LogoutOutlined />} onClick={props.removeToken}>
+        <Button size="large" block danger icon={<LogoutOutlined aria-hidden />} onClick={props.removeToken}>
           Abmelden
         </Button>
       </Space>

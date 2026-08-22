@@ -16,7 +16,9 @@ func CreateCityPDFs(cityNos []int, year int) (string, string) {
 	currentTime := time.Now()
 	timeString := currentTime.Format("20060102_150405")
 	pathZip := "ressources/pdfs/"
-	fileZip := "Auswertung_" + timeString + ".zip"
+	// Jahr im Dateinamen: wer mehrere Jahre herunterlaedt, kann die Dateien
+	// sonst nicht unterscheiden.
+	fileZip := "Auswertung_" + strconv.Itoa(year) + "_" + timeString + ".zip"
 	zipData := new(bytes.Buffer)
 	zipWriter := zip.NewWriter(zipData)
 
