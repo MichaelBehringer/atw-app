@@ -143,7 +143,7 @@ function App(props) {
               {/* Am Handy steht hier der Seitentitel: ohne Seitenleiste ist er
                   der einzige Hinweis darauf, wo man sich befindet. */}
               <div style={{ fontWeight: 600, fontSize: 18, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {isMobile ? titleFor(location.pathname, loggedFunctionNo) : 'Atemschutzpflegestelle'}
+                {isMobile ? titleFor(location.pathname, loggedFunctionNo) : 'Atemschutz-App'}
               </div>
               <Dropdown menu={{ items: menuItems, onClick: handleMenuClick }} trigger={['click']} placement="bottomRight">
                 <Avatar style={{ cursor: 'pointer', flexShrink: 0 }}>{loggedInitials}</Avatar>

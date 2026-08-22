@@ -68,11 +68,11 @@ describe('titleFor', () => {
   })
 
   it('fällt bei unbekanntem Pfad auf den App-Namen zurück', () => {
-    expect(titleFor('/gibtesnicht', ATW)).toBe('Atemschutzpflegestelle')
+    expect(titleFor('/gibtesnicht', ATW)).toBe('Atemschutz-App')
   })
 
   it('nennt keine Seite, die die Rolle nicht sehen darf, beim Navigationsnamen', () => {
     // Ein Externer, der /evaluation aufruft, bekommt keinen Verwaltungstitel.
-    expect(titleFor('/evaluation', EXTERN)).toBe('Atemschutzpflegestelle')
+    expect(titleFor('/evaluation', EXTERN)).toBe('Atemschutz-App')
   })
 })

@@ -69,5 +69,5 @@ export function titleFor(pathname, functionNo) {
   const path = activePath(pathname)
   const item = navItemsFor(functionNo).find((i) => i.path === path)
   if (item) return item.label
-  return EXTRA_TITLES[path] ?? 'Atemschutzpflegestelle'
+  return EXTRA_TITLES[path] ?? 'Atemschutz-App'
 }

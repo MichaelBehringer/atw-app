@@ -17,10 +17,10 @@ export default defineConfig({
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'app-icon.svg'],
       manifest: {
         id: '/',
-        name: 'FFW Wemding Atemschutzpflegestelle',
+        name: 'Atemschutz-App',
         // Kurz halten: unter dem Symbol auf dem Startbildschirm ist nur Platz
         // fuer rund 12 Zeichen.
-        short_name: 'Atemschutz',
+        short_name: 'Atemschutz-App',
         description: 'Auftraege und Arbeitszeiten der Atemschutzpflegestelle der FFW Wemding',
         lang: 'de',
         dir: 'ltr',
@@ -76,6 +76,13 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    // Ausdruecklich gesetzt, nicht dem Standard von Vite ueberlassen: Vite 8
+    // hat ihn auf Safari 16.4 angehoben. Aeltere iPads bekommen keine neuere
+    // iPadOS-Version mehr und wuerden das Bundle nicht mehr einlesen koennen -
+    // in der Anwendung waere das ein weisser Bildschirm ohne jede Meldung.
+    // Chrome aktualisiert sich unabhaengig vom Geraetealter, dort faellt das
+    // nicht auf.
+    target: ['es2019', 'safari13.1', 'chrome80', 'firefox78'],
   },
   test: {
     environment: 'jsdom',

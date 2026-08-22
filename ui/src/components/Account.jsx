@@ -59,7 +59,7 @@ function Account(props) {
       </Space>
 
       <div style={{ marginTop: 32, textAlign: 'center' }}>
-        <Text type="secondary">Atemschutzpflegestelle · Version {__APP_VERSION__}</Text>
+        <Text type="secondary">Atemschutz-App · Version {__APP_VERSION__}</Text>
       </div>
 
       {/* Bewusst dieselbe Komponente wie im Profil-Menü. Vorher gab es hier eine
