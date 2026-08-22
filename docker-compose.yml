@@ -16,6 +16,8 @@ services:
       GIN_MODE: "release"
       # Benachrichtigungen sind hier bewusst ausdruecklich an.
       ATW_NTFY_ENABLED: "true"
+      # Ein Tipp auf die Benachrichtigung oeffnet die App.
+      ATW_APP_URL: "https://ffwemding.dynv6.net:11200/"
   ui:
     build: ui
     deploy:
