@@ -4,7 +4,7 @@
 #
 # Läuft per crontab:  30 2 * * * sh /root/atw-app/certs/cert.sh
 
-APP_DIR=/home/ubuntu/atw-app
+APP_DIR=/root/atw-app
 DOMAIN=ffwemding.dynv6.net
 
 # Erneuert nur, wenn das Zertifikat in weniger als 30 Tagen abläuft, sonst
