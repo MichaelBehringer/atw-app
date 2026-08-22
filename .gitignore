@@ -2,3 +2,6 @@ backup/gitRepo/
 
 # Zugangsdaten der Produktivumgebung
 .env
+
+# Python-Zwischenspeicher
+__pycache__/
