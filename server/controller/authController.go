@@ -61,15 +61,15 @@ func parseToken(tokenStr string) (bool, jwt.MapClaims) {
 }
 
 func ntfyNoticeAnlieferung(topic string, source string, message string) {
-	req, _ := http.NewRequest("POST", "https://ntfy.sh/"+topic,
-		strings.NewReader("Bestandteile:"+message))
-	req.Header.Set("Title", source+" - Anlieferung")
-	http.DefaultClient.Do(req)
+	// req, _ := http.NewRequest("POST", "https://ntfy.sh/"+topic,
+	// 	strings.NewReader("Bestandteile:"+message))
+	// req.Header.Set("Title", source+" - Anlieferung")
+	// http.DefaultClient.Do(req)
 }
 
 func ntfyNoticeBearbeitung(topic string, header string, message string) {
-	req, _ := http.NewRequest("POST", "https://ntfy.sh/Info_"+topic,
-		strings.NewReader(message))
-	req.Header.Set("Title", header)
-	http.DefaultClient.Do(req)
+	// req, _ := http.NewRequest("POST", "https://ntfy.sh/Info_"+topic,
+	// 	strings.NewReader(message))
+	// req.Header.Set("Title", header)
+	// http.DefaultClient.Do(req)
 }

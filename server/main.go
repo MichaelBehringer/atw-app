@@ -53,7 +53,7 @@ func main() {
 
 	router.GET("/file", file)
 
-	router.Run(":8080")
+	router.Run("localhost:8080")
 }
 
 func login(c *gin.Context) {
@@ -228,7 +228,7 @@ func createCity(c *gin.Context) {
 
 func file(c *gin.Context) {
 	numbers := [21]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 23, 24, 25}
-	pathZip, fileZip := CreateCityPDFs(numbers[:], 2024)
+	pathZip, fileZip := CreateCityPDFs(numbers[:], 2025)
 	c.Writer.Header().Set("Content-Disposition", "attachment; filename="+fileZip)
 	c.Header("Content-Language", fileZip)
 	c.File(pathZip + fileZip)

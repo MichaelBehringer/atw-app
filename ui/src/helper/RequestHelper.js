@@ -1,7 +1,8 @@
 import axios from "axios";
 
 export const baseUrl = window.location.hostname + ":" + window.location.port
-const url = "https://"+baseUrl+"/server/"
+// const url = "https://"+baseUrl+"/server/"
+const url = "http://localhost:8080/"
 
 export async function doPostRequest(path, param) {
 	return axios.post(url+path, param)
