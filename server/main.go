@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	. "ffAPI/controller"
 	. "ffAPI/middleware"
 	. "ffAPI/models"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -67,9 +69,25 @@ func main() {
 
 func login(c *gin.Context) {
 	var login Login
-	c.BindJSON(&login)
-	retJWT := DoLogin(login, c)
-	c.IndentedJSON(http.StatusOK, retJWT)
+	if bindErr := c.ShouldBindJSON(&login); bindErr != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	token, loginErr := DoLogin(login)
+	switch {
+	case errors.Is(loginErr, ErrAnmeldungFehlgeschlagen):
+		// Falsche Zugangsdaten. Die Oberflaeche zeigt darauf "Benutzername oder
+		// Passwort falsch".
+		c.AbortWithStatus(http.StatusUnauthorized)
+	case loginErr != nil:
+		// Technischer Fehler, meist die Datenbank. Vorher war das von falschen
+		// Zugangsdaten nicht zu unterscheiden und tauchte in keinem Log auf.
+		log.Printf("Anmeldung fehlgeschlagen (technisch): %v", loginErr)
+		c.AbortWithStatus(http.StatusInternalServerError)
+	default:
+		c.IndentedJSON(http.StatusOK, token)
+	}
 }
 
 func checkToken(c *gin.Context) {

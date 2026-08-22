@@ -1,8 +1,8 @@
 package controller
 
 import (
+	"errors"
 	. "ffAPI/models"
-	"net/http"
 	"strings"
 	"time"
 
@@ -10,28 +10,38 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func DoLogin(login Login, c *gin.Context) AcessToken {
-	var (
-		key []byte
-		t   *jwt.Token
-		s   string
-	)
+// ErrAnmeldungFehlgeschlagen steht fuer falsche Zugangsdaten - im Unterschied
+// zu einem technischen Fehler, etwa einer nicht erreichbaren Datenbank.
+var ErrAnmeldungFehlgeschlagen = errors.New("benutzername oder passwort falsch")
 
-	var isAllowed bool
-	ExecuteSQLRow("SELECT COUNT(*) FROM pers WHERE UPPER(USERNAME)=UPPER(?) AND PASSWORD=?", login.Username, login.Password).Scan(&isAllowed)
-	if !isAllowed {
-		c.AbortWithStatus(http.StatusUnauthorized)
+// DoLogin prueft die Zugangsdaten und gibt bei Erfolg ein Token zurueck.
+//
+// Vorher wurde der Fehler von Scan verworfen. Eine nicht erreichbare Datenbank
+// sah dadurch genauso aus wie ein falsches Passwort - und schlimmer: die
+// Funktion lief nach dem AbortWithStatus(401) weiter und gab trotzdem ein
+// gueltiges Token zurueck, das der Handler mit Status 200 ausgeliefert hat.
+func DoLogin(login Login) (AcessToken, error) {
+	var treffer int
+	// COUNT(*) in einen int, nicht in einen bool: bei mehr als einem Treffer
+	// wuerde Scan in einen bool fehlschlagen.
+	if scanErr := ExecuteSQLRow("SELECT COUNT(*) FROM pers WHERE UPPER(USERNAME)=UPPER(?) AND PASSWORD=?", login.Username, login.Password).Scan(&treffer); scanErr != nil {
+		return AcessToken{}, scanErr
+	}
+	if treffer == 0 {
+		return AcessToken{}, ErrAnmeldungFehlgeschlagen
 	}
 
-	key = []byte(Env("ATW_JWT_SECRET", "my_secret_key"))
-	t = jwt.NewWithClaims(jwt.SigningMethodHS256,
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"user":         login.Username,
 			"creationTime": time.Now().UnixNano(),
 		})
-	s, _ = t.SignedString(key)
+	signiert, signErr := token.SignedString([]byte(Env("ATW_JWT_SECRET", "my_secret_key")))
+	if signErr != nil {
+		return AcessToken{}, signErr
+	}
 
-	return AcessToken{AccessToken: s}
+	return AcessToken{AccessToken: signiert}, nil
 }
 
 func CheckToken(c *gin.Context) AuthPerson {
