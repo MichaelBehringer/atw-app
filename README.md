@@ -155,8 +155,78 @@ Aus der Crontab (`sudo crontab -u root -e`):
 ```cron
 30 2 * * * sh /root/atw-app/certs/cert.sh
 0 3 * * * /sbin/shutdown -r
-0 */6 * * * /root/atw-app/backup/backup.sh
+0 */8 * * * /root/atw-app/backup/backup.sh
 ```
+
+## Sicherung
+
+`backup/backup.sh` erzeugt zwei Dinge in `backup/gitRepo` und committet sie in
+ein eigenes Repository:
+
+- `dump.sql` — vollständiger `mysqldump`, das ist die Grundlage zum
+  Zurückspielen.
+- `csv/<tabelle>.csv` — je Tabelle eine Datei zum Lesen und Auswerten, etwa in
+  einer Tabellenkalkulation. Praktischer Nebeneffekt: im Git-Diff ist auf einen
+  Blick zu sehen, was sich seit der letzten Sicherung geändert hat.
+
+Die Zugangsdaten kommen aus `.env`, nicht aus dem Skript, und werden über eine
+temporäre Optionsdatei übergeben — Kommandozeilenargumente wären in `ps` für
+alle Nutzer des Systems sichtbar.
+
+### Meldung, wenn es schiefgeht
+
+Ein Backup, dessen Ausfall niemand bemerkt, ist keins. Wenn in der `.env` ein
+Thema hinterlegt ist, meldet sich das Skript bei jedem Fehler über ntfy:
+
+```
+ATW_BACKUP_NTFY_TOPIC=ein-eigenes-thema-fuer-meldungen
+```
+
+Bewusst ein anderes Thema als das der Anwendung — eine Backup-Störung gehört
+nicht in die Benachrichtigungen der Gerätewarte.
+
+### Zurückspielen
+
+Einmal ausprobieren, solange nichts brennt. Ein Backup, das nie zurückgespielt
+wurde, ist eine Vermutung:
+
+```bash
+# In eine Testdatenbank, nicht über den Bestand
+sudo mariadb -e "CREATE DATABASE ffw_test"
+sudo mariadb ffw_test < /root/atw-app/backup/gitRepo/dump.sql
+
+# Gegenprobe: gleiche Zeilenzahl wie im Original?
+sudo mariadb -e "SELECT COUNT(*) FROM ffw.atemschutzpflegestelle_data"
+sudo mariadb -e "SELECT COUNT(*) FROM ffw_test.atemschutzpflegestelle_data"
+
+sudo mariadb -e "DROP DATABASE ffw_test"
+```
+
+Im Ernstfall auf den Bestand, mit einem älteren Stand aus der Historie:
+
+```bash
+cd /root/atw-app/backup/gitRepo
+git log --oneline                 # gewünschten Stand suchen
+git show <commit>:dump.sql > /tmp/wiederherstellung.sql
+docker compose -f /root/atw-app/docker-compose.yml stop server
+sudo mariadb ffw < /tmp/wiederherstellung.sql
+docker compose -f /root/atw-app/docker-compose.yml start server
+```
+
+### Was dieses Verfahren leistet und was nicht
+
+- **Auswärtige Ablage:** ja, das Git-Remote liegt nicht auf der VM. Ein
+  Totalverlust der VM ist abgedeckt.
+- **Aufbewahrung:** die Git-Historie, also unbegrenzt. Alte Stände lassen sich
+  nicht löschen, das Repository wächst dauerhaft.
+- **Datenverlust im Ernstfall:** bis zu 8 Stunden.
+- **Personenbezogene Daten:** `dump.sql` enthält Namen und — solange die
+  Passwörter nicht gehasht sind — die Passwörter im Klartext. Beides liegt damit
+  dauerhaft und praktisch unlöschbar beim Anbieter des Git-Remotes. Die
+  CSV-Dateien lassen die Passwortspalte aus (`AUSGESCHLOSSEN` in
+  `backup/export_csv.py`), der Dump kann das nicht, weil er sonst zum
+  Zurückspielen unbrauchbar wäre. Der wirksame Hebel ist, die Passwörter zu
+  hashen; danach ist diese Sicherung unbedenklich.
 
 ## Entwicklung
 
