@@ -1,0 +1,10 @@
+.env
+.git
+Dockerfile
+.dockerignore
+generated
+ffAPI
+# Die angesammelten Auswertungs-ZIPs gehoeren nicht ins Image. Das Verzeichnis
+# ressources/pdfs selbst muss aber erhalten bleiben (.gitkeep), weil
+# pdfController.go dort per os.Create schreibt und es nicht anlegt.
+ressources/pdfs/*.zip

@@ -1,70 +1,83 @@
-# Getting Started with Create React App
+# atw-app – Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React-Frontend der Atemschutzpflegestelle (FFW Wemding). Build-Tooling: Vite.
 
-## Available Scripts
+## Setup
 
-In the project directory, you can run:
+```bash
+npm install
+```
 
-### `npm start`
+Node >= 22.22 wird benötigt (Vorgabe von react-router 8).
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Entwicklung
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```bash
+npm run dev      # Dev-Server auf http://localhost:3000
+```
 
-### `npm test`
+Der Dev-Server erwartet das Go-Backend auf `http://localhost:8080` und leitet
+alle Requests unter `/server/` dorthin weiter (`server.proxy` in
+`vite.config.js`). Das entspricht genau der nginx-Regel in Produktion, deshalb
+ist die API-Basis-URL in beiden Umgebungen `/server/` – im Quellcode muss dafür
+nichts umgestellt werden.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Backend parallel starten:
 
-### `npm run build`
+```bash
+cd ../server && go run .
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Weitere Kommandos
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+npm run build    # Production-Build nach dist/
+npm run preview  # Production-Build lokal ausliefern
+npm run lint     # ESLint
+npm test         # Vitest
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Konfiguration
 
-### `npm run eject`
+Siehe `.env.example`. Einzige Variable ist `VITE_API_URL`; sie überschreibt die
+API-Basis-URL und ist nur nötig, wenn das Backend nicht über denselben Host
+erreichbar ist.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## PWA
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Die App ist installierbar und cacht ihre Shell über einen Service Worker
+(`vite-plugin-pwa`). Der Service Worker läuft nur im Production-Build, im
+Dev-Server ist er bewusst aus.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Bei einer neuen Version fragt die App nach, statt selbständig neu zu laden –
+wer gerade einen Auftrag abhakt, soll dabei nicht unterbrochen werden.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Daten unter `/server/` werden **nicht** gecacht, damit nie veraltete Aufträge
+erscheinen.
 
-## Learn More
+### App-Icon ändern
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Vorlage ist `public/app-icon.svg`. Die PNG-Größen daraus zu erzeugen braucht
+`@vite-pwa/assets-generator`, das bewusst **keine** Abhängigkeit des Projekts
+ist: es zieht `sharp` mit, das nur zur Bauzeit gebraucht wird und regelmäßig
+libvips-CVEs meldet. Einmalig ausführen und danach wieder entfernen:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```bash
+npm i -D @vite-pwa/assets-generator
+npx pwa-assets-generator
+npm uninstall @vite-pwa/assets-generator && npm prune
+```
 
-### Code Splitting
+Die erzeugten Dateien (`pwa-*.png`, `maskable-icon-*.png`,
+`apple-touch-icon-*.png`, `favicon.ico`) liegen im Repository. Neue Größen
+müssen zusätzlich in der `manifest`-Sektion von `vite.config.js` stehen.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Ausliefern
 
-### Analyzing the Bundle Size
+Das Container-Image baut die App und liefert sie mit nginx aus
+(`ui-nginx.conf`). Dort stehen zwei Dinge, die man nicht verlieren darf:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- **Kompression** – ohne sie gehen rund 1,3 MB statt 420 kB über die Leitung.
+- **Cache-Header** – `/assets/*` ist inhaltsgehasht und darf ein Jahr lang
+  gecacht werden, `index.html`, `sw.js` und `manifest.webmanifest` brauchen
+  `no-cache`. Werden diese drei gecacht, kommt bei den Nutzern kein Update an.

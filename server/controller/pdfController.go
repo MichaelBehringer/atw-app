@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-pdf/fpdf"
@@ -16,13 +17,16 @@ func CreateCityPDFs(cityNos []int, year int) (string, string) {
 	currentTime := time.Now()
 	timeString := currentTime.Format("20060102_150405")
 	pathZip := "ressources/pdfs/"
-	fileZip := "Auswertung_" + timeString + ".zip"
+	// Jahr im Dateinamen: wer mehrere Jahre herunterlaedt, kann die Dateien
+	// sonst nicht unterscheiden.
+	fileZip := "Auswertung_" + strconv.Itoa(year) + "_" + timeString + ".zip"
 	zipData := new(bytes.Buffer)
 	zipWriter := zip.NewWriter(zipData)
 
 	for _, cityNo := range cityNos {
 		cityName := GetCityname(cityNo)
-		filename := cityName + ".pdf"
+		// "Altisheim/Leitheim" wuerde im ZIP einen Ordner aufmachen.
+		filename := strings.ReplaceAll(cityName, "/", " ") + ".pdf"
 		pdf := createCityPDF(filename, cityName, cityNo, year)
 		addPDFToZip(zipWriter, filename, pdf)
 	}

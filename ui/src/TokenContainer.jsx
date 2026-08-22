@@ -1,5 +1,4 @@
 
-import React from 'react';
 import App from './components/App';
 import Authentication from './components/Authentication';
 import useToken from "./hooks/useToken";

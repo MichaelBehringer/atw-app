@@ -31,14 +31,14 @@ func GetEntryByID(id string) EntryObj {
 func GetSearchResultOpen(searchParam SearchParamExtra) []SearchResultOpen {
 	var results *sql.Rows
 	if searchParam.IsExternal {
-		results = ExecuteSQL("select d.DATA_NO, ac.CITY_NAME, d.CITY_NO, DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.state from atemschutzpflegestelle_data d inner join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO inner join pers p on d.CITY_NO=p.CITY_NO where p.PERS_NO=? order by d.STATE asc, d.DATA_NO desc", searchParam.PersNo)
+		results = ExecuteSQL("select d.DATA_NO, ac.CITY_NAME, d.CITY_NO, DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.state, ifnull(n.FLASCHEN_FUELLEN_NR,''), ifnull(n.FLASCHEN_TUEV_NR,''), ifnull(n.MASKEN_PRUEFEN_NR,''), ifnull(n.MASKEN_REINIGEN_NR,''), ifnull(n.LA_PRUEFEN_NR,''), ifnull(n.LA_REINIGEN_NR,''), ifnull(n.GERAETE_PRUEFEN_NR,''), ifnull(n.GERAETE_REINIGEN_NR,'') from atemschutzpflegestelle_data d inner join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO inner join pers p on d.CITY_NO=p.CITY_NO left join atemschutzpflegestelle_nr n on d.DATA_NO = n.DATA_NO where p.PERS_NO=? order by d.STATE asc, d.DATA_NO desc", searchParam.PersNo)
 	} else {
-		results = ExecuteSQL("select d.DATA_NO, ac.CITY_NAME, d.CITY_NO, DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.state from atemschutzpflegestelle_data d inner join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO where d.state='open' order by d.STATE asc, d.DATA_NO desc")
+		results = ExecuteSQL("select d.DATA_NO, ac.CITY_NAME, d.CITY_NO, DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.state, ifnull(n.FLASCHEN_FUELLEN_NR,''), ifnull(n.FLASCHEN_TUEV_NR,''), ifnull(n.MASKEN_PRUEFEN_NR,''), ifnull(n.MASKEN_REINIGEN_NR,''), ifnull(n.LA_PRUEFEN_NR,''), ifnull(n.LA_REINIGEN_NR,''), ifnull(n.GERAETE_PRUEFEN_NR,''), ifnull(n.GERAETE_REINIGEN_NR,'') from atemschutzpflegestelle_data d inner join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO left join atemschutzpflegestelle_nr n on d.DATA_NO = n.DATA_NO where d.state='open' order by d.STATE asc, d.DATA_NO desc")
 	}
 	searchResults := []SearchResultOpen{}
 	for results.Next() {
 		var searchResult SearchResultOpen
-		results.Scan(&searchResult.DataNo, &searchResult.City, &searchResult.CityNo, &searchResult.DateWork, &searchResult.State)
+		results.Scan(&searchResult.DataNo, &searchResult.City, &searchResult.CityNo, &searchResult.DateWork, &searchResult.State, &searchResult.FlaschenFuellenNr, &searchResult.FlaschenTuevNr, &searchResult.MaskenPruefenNr, &searchResult.MaskenReinigenNr, &searchResult.LaPruefenNr, &searchResult.LaReinigenNr, &searchResult.GeraetePruefenNr, &searchResult.GeraeteReinigenNr)
 		searchResults = append(searchResults, searchResult)
 	}
 	return searchResults
@@ -60,7 +60,7 @@ func CreateEntryProposal(newEntry EntryObj) {
 	newID, _ := result.LastInsertId()
 	ExecuteDDL("INSERT INTO atemschutzpflegestelle_nr (DATA_NO, FLASCHEN_FUELLEN_NR, FLASCHEN_TUEV_NR, MASKEN_PRUEFEN_NR, MASKEN_REINIGEN_NR, LA_PRUEFEN_NR, LA_REINIGEN_NR, GERAETE_PRUEFEN_NR, GERAETE_REINIGEN_NR) VALUES(?,?,?,?,?,?,?,?,?)", newID, newEntry.FlaschenFuellenNr, newEntry.FlaschenTuevNr, newEntry.MaskenPruefenNr, newEntry.MaskenReinigenNr, newEntry.LaPruefenNr, newEntry.LaReinigenNr, newEntry.GeraetePruefenNr, newEntry.GeraeteReinigenNr)
 
-	ntfyNoticeAnlieferung("Info_FF_AGW", GetCityname(newEntry.City), createNtfyLine(newEntry.FlaschenFuellen, "Flaschen füllen")+createNtfyLine(newEntry.FlaschenTuev, "Flaschen TÜV")+createNtfyLine(newEntry.MaskenPruefen, "Masken prüfen")+createNtfyLine(newEntry.MaskenReinigen, "Masken reinigen")+createNtfyLine(newEntry.LaPruefen, "LA prüfen")+createNtfyLine(newEntry.LaReinigen, "LA reinigen")+createNtfyLine(newEntry.GeraetePruefen, "Geräte prüfen")+createNtfyLine(newEntry.GeraeteReinigen, "Geräte reinigen"))
+	ntfyAnlieferung(newID, GetCityname(newEntry.City), postenAusEintrag(newEntry))
 }
 
 func DeleteEntry(removeEntry EntryObj) {
@@ -82,8 +82,12 @@ func UpdateEntryTree(updateEntryObjTree EntryObjTree) {
 	ExecuteSQLRow(statement, updateEntryObjTree.User).Scan(&ntfyEditorName)
 
 	if slices.Contains(updateEntryObjTree.WorkingPoints, "root") {
+		// Vor dem Abschliessen lesen: danach steht in der Nachricht sonst nur
+		// noch die Auftragsnummer, obwohl die erledigten Nummern bekannt sind.
+		erledigt := postenAusEintrag(GetEntryByID(fmt.Sprint(updateEntryObjTree.DataNo)))
+
 		ExecuteDDL("UPDATE atemschutzpflegestelle_data SET STATE = 'saved', TIME_WORK = ?, DATE_WORK = ?, PERS_NO = ? where DATA_NO = ?", updateEntryObjTree.TimeWork, updateEntryObjTree.DateWork, updateEntryObjTree.User, updateEntryObjTree.DataNo)
-		ntfyNoticeBearbeitung(ntfyTopicName, "Auftrag komplett abgearbeitet", "Bearbeiter: "+ntfyEditorName+"\n Auftragsnummer: #"+fmt.Sprint(updateEntryObjTree.DataNo))
+		ntfyBearbeitung(ntfyTopicName, updateEntryObjTree.DataNo, ntfyEditorName, erledigt, nil)
 	} else {
 		newEntry := NrObjList{}
 		//var newEntry EntryObj
@@ -139,7 +143,11 @@ func UpdateEntryTree(updateEntryObjTree EntryObjTree) {
 		}
 		CreateEntry(EntryObj{City: updateEntryObjTree.City, User: updateEntryObjTree.User, DateWork: updateEntryObjTree.DateWork, TimeWork: updateEntryObjTree.TimeWork, FlaschenFuellen: len(newEntry.FlaschenFuellenNr), FlaschenTuev: len(newEntry.FlaschenTuevNr), MaskenReinigen: len(newEntry.MaskenReinigenNr), MaskenPruefen: len(newEntry.MaskenPruefenNr), LaReinigen: len(newEntry.LaReinigenNr), LaPruefen: len(newEntry.LaPruefenNr), GeraetePruefen: len(newEntry.GeraetePruefenNr), GeraeteReinigen: len(newEntry.GeraeteReinigenNr), FlaschenFuellenNr: strings.Join(newEntry.FlaschenFuellenNr, ","), FlaschenTuevNr: strings.Join(newEntry.FlaschenTuevNr, ","), MaskenReinigenNr: strings.Join(newEntry.MaskenReinigenNr, ","), MaskenPruefenNr: strings.Join(newEntry.MaskenPruefenNr, ","), LaReinigenNr: strings.Join(newEntry.LaReinigenNr, ","), LaPruefenNr: strings.Join(newEntry.LaPruefenNr, ","), GeraetePruefenNr: strings.Join(newEntry.GeraetePruefenNr, ","), GeraeteReinigenNr: strings.Join(newEntry.GeraeteReinigenNr, ",")})
 
-		ntfyNoticeBearbeitung(ntfyTopicName, "Auftrag teilweise abgearbeitet", "Bearbeiter: "+ntfyEditorName+"\n Auftragsnummer: #"+fmt.Sprint(updateEntryObjTree.DataNo)+"\nBestandteile:"+createNtfyLine(len(newEntry.FlaschenFuellenNr), "Flaschen füllen")+createNtfyLine(len(newEntry.FlaschenTuevNr), "Flaschen TÜV")+createNtfyLine(len(newEntry.MaskenPruefenNr), "Masken prüfen")+createNtfyLine(len(newEntry.MaskenReinigenNr), "Masken reinigen")+createNtfyLine(len(newEntry.LaPruefenNr), "LA prüfen")+createNtfyLine(len(newEntry.LaReinigenNr), "LA reinigen")+createNtfyLine(len(newEntry.GeraetePruefenNr), "Geräte prüfen")+createNtfyLine(len(newEntry.GeraeteReinigenNr), "Geräte reinigen"))
+		// Nach den Aktualisierungen lesen: was jetzt noch im Auftrag steht, ist
+		// genau das, was offen geblieben ist. Fuer die Feuerwehr die
+		// wichtigste Information der Meldung.
+		offen := postenAusEintrag(GetEntryByID(fmt.Sprint(updateEntryObjTree.DataNo)))
+		ntfyBearbeitung(ntfyTopicName, updateEntryObjTree.DataNo, ntfyEditorName, postenAusListe(newEntry), offen)
 	}
 }
 
@@ -147,11 +155,49 @@ func CreateExtraEntry(updateEntryObj EntryObj) {
 	ExecuteDDL("INSERT INTO atemschutzpflegestelle_data (CITY_NO, FLASCHEN_FUELLEN, MASKEN_PRUEFEN, GERAETE_PRUEFEN, PERS_NO, TIME_WORK, DATE_WORK, FLASCHEN_TUEV, MASKEN_REINIGEN, LA_PRUEFEN, LA_REINIGEN, GERAETE_REINIGEN, BEMERKUNG) VALUES(0,0,0,0,?,?,?,0,0,0,0,0,?)", updateEntryObj.User, updateEntryObj.TimeWork, updateEntryObj.DateWork, updateEntryObj.Bemerkung)
 }
 
-func createNtfyLine(amounth int, name string) string {
-	if amounth > 0 {
-		return fmt.Sprintf("\n- %d %s", amounth, name)
+// Die acht Arbeitsarten in der Reihenfolge, in der sie in der Oberflaeche
+// stehen - so liest sich die Nachricht wie die Erfassungsmaske.
+var arbeitsarten = []struct {
+	Name       string
+	AusEintrag func(EntryObj) string
+	AusListe   func(NrObjList) []string
+}{
+	{"Flaschen füllen", func(e EntryObj) string { return e.FlaschenFuellenNr }, func(l NrObjList) []string { return l.FlaschenFuellenNr }},
+	{"Flaschen TÜV", func(e EntryObj) string { return e.FlaschenTuevNr }, func(l NrObjList) []string { return l.FlaschenTuevNr }},
+	{"Masken prüfen", func(e EntryObj) string { return e.MaskenPruefenNr }, func(l NrObjList) []string { return l.MaskenPruefenNr }},
+	{"Masken reinigen", func(e EntryObj) string { return e.MaskenReinigenNr }, func(l NrObjList) []string { return l.MaskenReinigenNr }},
+	{"LA prüfen", func(e EntryObj) string { return e.LaPruefenNr }, func(l NrObjList) []string { return l.LaPruefenNr }},
+	{"LA reinigen", func(e EntryObj) string { return e.LaReinigenNr }, func(l NrObjList) []string { return l.LaReinigenNr }},
+	{"Geräte prüfen", func(e EntryObj) string { return e.GeraetePruefenNr }, func(l NrObjList) []string { return l.GeraetePruefenNr }},
+	{"Geräte reinigen", func(e EntryObj) string { return e.GeraeteReinigenNr }, func(l NrObjList) []string { return l.GeraeteReinigenNr }},
+}
+
+// Die Nummern liegen im Eintrag als kommaseparierter Text. Leere Abschnitte
+// koennen nach einer Teilerledigung entstehen und werden verworfen.
+func zerlegeNummern(wert string) []string {
+	var nummern []string
+	for _, teil := range strings.Split(wert, ",") {
+		if teil = strings.TrimSpace(teil); teil != "" {
+			nummern = append(nummern, teil)
+		}
 	}
-	return ""
+	return nummern
+}
+
+func postenAusEintrag(entry EntryObj) []ntfyPosten {
+	posten := make([]ntfyPosten, 0, len(arbeitsarten))
+	for _, art := range arbeitsarten {
+		posten = append(posten, ntfyPosten{Name: art.Name, Nummern: zerlegeNummern(art.AusEintrag(entry))})
+	}
+	return posten
+}
+
+func postenAusListe(liste NrObjList) []ntfyPosten {
+	posten := make([]ntfyPosten, 0, len(arbeitsarten))
+	for _, art := range arbeitsarten {
+		posten = append(posten, ntfyPosten{Name: art.Name, Nummern: art.AusListe(liste)})
+	}
+	return posten
 }
 
 func GetYearSumDataResult(year int) YearSumDataResult {

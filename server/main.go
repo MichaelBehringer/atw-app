@@ -5,13 +5,22 @@ import (
 	. "ffAPI/middleware"
 	. "ffAPI/models"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Laedt server/.env, falls vorhanden. Fehlt die Datei, ist das kein Fehler -
+	// im Container kommen die Werte aus docker-compose. Bereits gesetzte
+	// Umgebungsvariablen werden nicht ueberschrieben, echte Env-Vars haben
+	// also Vorrang vor der Datei.
+	godotenv.Load()
+
 	InitDB()
 	defer CloseDB()
 
@@ -53,7 +62,7 @@ func main() {
 
 	router.GET("/file", file)
 
-	router.Run(":8080")
+	router.Run(Env("ATW_LISTEN_ADDR", ":8080"))
 }
 
 func login(c *gin.Context) {
@@ -226,9 +235,22 @@ func createCity(c *gin.Context) {
 	}
 }
 
+// requestedYear liest das Auswertungsjahr aus dem Query-Parameter "year".
+// Ohne Angabe gilt das laufende Jahr - vorher stand das Jahr fest im Code und
+// musste jaehrlich geaendert werden. Unplausible Werte werden verworfen statt
+// an die PDF-Erzeugung durchgereicht.
+func requestedYear(c *gin.Context) int {
+	current := time.Now().Year()
+	value, err := strconv.Atoi(c.Query("year"))
+	if err != nil || value < 2000 || value > current+1 {
+		return current
+	}
+	return value
+}
+
 func file(c *gin.Context) {
 	numbers := [21]int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 23, 24, 25}
-	pathZip, fileZip := CreateCityPDFs(numbers[:], 2024)
+	pathZip, fileZip := CreateCityPDFs(numbers[:], requestedYear(c))
 	c.Writer.Header().Set("Content-Disposition", "attachment; filename="+fileZip)
 	c.Header("Content-Language", fileZip)
 	c.File(pathZip + fileZip)

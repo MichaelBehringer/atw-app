@@ -23,7 +23,7 @@ func DoLogin(login Login, c *gin.Context) AcessToken {
 		c.AbortWithStatus(http.StatusUnauthorized)
 	}
 
-	key = []byte("my_secret_key")
+	key = []byte(Env("ATW_JWT_SECRET", "my_secret_key"))
 	t = jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"user":         login.Username,
@@ -55,21 +55,7 @@ func ExtractToken(c *gin.Context) (bool, jwt.MapClaims) {
 func parseToken(tokenStr string) (bool, jwt.MapClaims) {
 	claims := jwt.MapClaims{}
 	tkn, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte("my_secret_key"), nil
+		return []byte(Env("ATW_JWT_SECRET", "my_secret_key")), nil
 	})
 	return (err == nil && tkn.Valid), claims
-}
-
-func ntfyNoticeAnlieferung(topic string, source string, message string) {
-	req, _ := http.NewRequest("POST", "https://ntfy.sh/"+topic,
-		strings.NewReader("Bestandteile:"+message))
-	req.Header.Set("Title", source+" - Anlieferung")
-	http.DefaultClient.Do(req)
-}
-
-func ntfyNoticeBearbeitung(topic string, header string, message string) {
-	req, _ := http.NewRequest("POST", "https://ntfy.sh/Info_"+topic,
-		strings.NewReader(message))
-	req.Header.Set("Title", header)
-	http.DefaultClient.Do(req)
 }

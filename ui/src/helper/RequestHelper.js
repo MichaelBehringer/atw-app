@@ -1,7 +1,9 @@
 import axios from "axios";
 
-export const baseUrl = window.location.hostname + ":" + window.location.port
-const url = "https://"+baseUrl+"/server/"
+// Default: relativer Pfad. In Dev leitet der Vite-Proxy /server/ auf das
+// Backend um, in Produktion macht das nginx (location /server/).
+// VITE_API_URL ueberschreibt das nur fuer Sonderfaelle (siehe .env.example).
+const url = import.meta.env.VITE_API_URL ?? "/server/"
 
 export async function doPostRequest(path, param) {
 	return axios.post(url+path, param)

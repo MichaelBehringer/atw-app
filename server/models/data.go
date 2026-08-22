@@ -31,6 +31,18 @@ type SearchResultOpen struct {
 	CityNo   int    `json:"cityNo"`
 	DateWork string `json:"dateWork"`
 	State    string `json:"state"`
+	// Die offenen Nummern je Arbeitsart. Damit kann die Oberflaeche direkt aus
+	// der Liste die Zusammenfassung und die Abarbeiten-Checkliste bauen, ohne
+	// pro Auftrag zusaetzlich /entry/:id abzufragen. Die Schluesselnamen sind
+	// dieselben wie in EntryObj.
+	FlaschenFuellenNr string `json:"flaschenFuellenNr"`
+	FlaschenTuevNr    string `json:"flaschenTUEVNr"`
+	MaskenPruefenNr   string `json:"maskenPruefenNr"`
+	MaskenReinigenNr  string `json:"maskenReinigenNr"`
+	LaPruefenNr       string `json:"laPruefenNr"`
+	LaReinigenNr      string `json:"laReinigenNr"`
+	GeraetePruefenNr  string `json:"geraetePruefenNr"`
+	GeraeteReinigenNr string `json:"geraeteReinigenNr"`
 }
 
 type EntryObj struct {
