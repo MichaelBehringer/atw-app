@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { HashRouter } from 'react-router'
 import AppProviders from '../AppProviders'
 
@@ -10,7 +11,7 @@ const checkTokenResponse = vi.fn()
 vi.mock('../helper/RequestHelper', () => ({
   doGetRequestAuth: (path) =>
     path === 'checkToken'
-      ? Promise.resolve({ data: checkTokenResponse() })
+      ? checkTokenResponse()
       : Promise.resolve({ data: [] }),
   doPostRequestAuth: () => Promise.resolve({ data: [] }),
   doPostRequest: () => Promise.resolve({ data: {} }),
@@ -25,19 +26,20 @@ const ATW = 1
 const ADMIN = 2
 const EXTERN = 3
 
-function renderApp(functionNo) {
-  checkTokenResponse.mockReturnValue({
-    username: 'Max Muster',
-    persNo: 7,
-    functionNo,
+function renderApp(functionNo, removeToken = vi.fn()) {
+  checkTokenResponse.mockResolvedValue({
+    data: { username: 'Max Muster', persNo: 7, functionNo },
   })
-  return render(
-    <AppProviders>
-      <HashRouter>
-        <App token="test-token" removeToken={vi.fn()} />
-      </HashRouter>
-    </AppProviders>,
-  )
+  return {
+    removeToken,
+    ...render(
+      <AppProviders>
+        <HashRouter>
+          <App token="test-token" removeToken={removeToken} />
+        </HashRouter>
+      </AppProviders>,
+    ),
+  }
 }
 
 describe('App-Shell', () => {
@@ -83,5 +85,64 @@ describe('App-Shell', () => {
     renderApp(ATW)
 
     expect(await screen.findByText('MM')).toBeInTheDocument()
+  })
+
+  it('verwirft ein ungültiges Token und zeigt die Anmeldung', async () => {
+    const removeToken = vi.fn()
+    // So antwortet der Server auf ein Token aus einer älteren Installation
+    // oder nach einem Wechsel des Signaturschlüssels.
+    checkTokenResponse.mockRejectedValue({ response: { status: 405 } })
+
+    render(
+      <AppProviders>
+        <HashRouter>
+          <App token="altes-token" removeToken={removeToken} />
+        </HashRouter>
+      </AppProviders>,
+    )
+
+    // Ohne diese Behandlung blieb die App für immer im Ladezustand.
+    await vi.waitFor(() => expect(removeToken).toHaveBeenCalledTimes(1))
+    expect(await screen.findByText('Bitte neu anmelden')).toBeInTheDocument()
+  })
+
+  it('behält das Token bei einem Netzwerkfehler und bietet einen neuen Versuch', async () => {
+    const removeToken = vi.fn()
+    // Kein response heißt Funkloch, nicht ungültiges Token.
+    checkTokenResponse.mockRejectedValue(new Error('Network Error'))
+
+    render(
+      <AppProviders>
+        <HashRouter>
+          <App token="gutes-token" removeToken={removeToken} />
+        </HashRouter>
+      </AppProviders>,
+    )
+
+    expect(await screen.findByText('Keine Verbindung zum Server')).toBeInTheDocument()
+    // Sonst würde ein kurzer Verbindungsabbruch alle abmelden.
+    expect(removeToken).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Erneut versuchen' })).toBeInTheDocument()
+  })
+
+  it('lädt nach "Erneut versuchen" die Anmeldedaten', async () => {
+    const user = userEvent.setup()
+    // Erster Aufruf scheitert, jeder weitere gelingt.
+    checkTokenResponse.mockRejectedValueOnce(new Error('Network Error'))
+    checkTokenResponse.mockResolvedValue({
+      data: { username: 'Max Muster', persNo: 7, functionNo: ATW },
+    })
+
+    render(
+      <AppProviders>
+        <HashRouter>
+          <App token="gutes-token" removeToken={vi.fn()} />
+        </HashRouter>
+      </AppProviders>,
+    )
+
+    await user.click(await screen.findByRole('button', { name: 'Erneut versuchen' }))
+
+    expect(await screen.findByRole('button', { name: 'Aufträge' })).toBeInTheDocument()
   })
 })

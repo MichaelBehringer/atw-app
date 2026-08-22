@@ -10,8 +10,8 @@ const Search = lazy(() => import("./Search"));
 const Evaluation = lazy(() => import("./Evaluation"));
 const UserManagement = lazy(() => import("./UserManagement"));
 const Account = lazy(() => import("./Account"));
-import { myToastInfo } from "../helper/ToastHelper";
-import { Avatar, Dropdown, Layout, Skeleton, theme } from 'antd';
+import { myToastError, myToastInfo } from "../helper/ToastHelper";
+import { Avatar, Button, Dropdown, Layout, Result, Skeleton, theme } from 'antd';
 import AppNav, { BOTTOM_NAV_HEIGHT, SIDER_WIDTH } from "./AppNav";
 import ChangePasswordModal from './ChangePasswordModal';
 import useIsMobile from "../hooks/useIsMobile";
@@ -26,6 +26,7 @@ function App(props) {
   const [loggedInitials, setLoggedInitials] = useState();
   const [loggedUsername, setLoggedUsername] = useState();
   const [isChangePasswordModalVisible, setIsChangePasswordModalVisible] = useState(false);
+  const [verbindungsfehler, setVerbindungsfehler] = useState(false);
 
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -36,14 +37,37 @@ function App(props) {
     token: { colorBgContainer, colorBgLayout, borderRadiusLG, colorBorderSecondary },
   } = theme.useToken();
 
+  function pruefeToken() {
+    setVerbindungsfehler(false);
+    doGetRequestAuth('checkToken', props.token)
+      .then((res) => {
+        myToastInfo('Hallo ' + res.data.username);
+        setLoggedUsername(res.data.username);
+        setLoggedInitials(res.data.username.split(' ').map(word => word[0]).join(''));
+        setLoggedPersNo(res.data.persNo);
+        setLoggedFunctionNo(res.data.functionNo);
+      })
+      .catch((error) => {
+        if (error.response) {
+          // Das Token ist ungültig - etwa aus einer älteren Installation oder
+          // nachdem der Signaturschlüssel gewechselt wurde. Ohne diese
+          // Behandlung blieb die App für immer im Ladezustand hängen, statt die
+          // Anmeldung zu zeigen, und man kam nur über das Löschen der
+          // Websitedaten wieder heraus.
+          myToastInfo('Bitte neu anmelden');
+          props.removeToken();
+        } else {
+          // Kein response heißt Netzwerkfehler. Das Token ist dann
+          // wahrscheinlich in Ordnung, deshalb wird es NICHT verworfen - sonst
+          // würde ein kurzer Funkloch-Moment alle abmelden.
+          myToastError('Keine Verbindung zum Server.');
+          setVerbindungsfehler(true);
+        }
+      });
+  }
+
   useEffect(() => {
-    doGetRequestAuth('checkToken', props.token).then((res) => {
-      myToastInfo('Hallo ' + res.data.username);
-      setLoggedUsername(res.data.username);
-      setLoggedInitials(res.data.username.split(' ').map(word => word[0]).join(''));
-      setLoggedPersNo(res.data.persNo);
-      setLoggedFunctionNo(res.data.functionNo);
-    });
+    pruefeToken();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -159,6 +183,17 @@ function App(props) {
             </Content>
           </Layout>
         </Layout>
+      ) : verbindungsfehler ? (
+        <Result
+          status="warning"
+          title="Keine Verbindung zum Server"
+          subTitle="Die Anmeldung konnte nicht geprüft werden."
+          extra={
+            <Button type="primary" size="large" onClick={pruefeToken}>
+              Erneut versuchen
+            </Button>
+          }
+        />
       ) : (
         <div style={{ padding: 24 }}>
           <Skeleton active paragraph={{ rows: 6 }} />
