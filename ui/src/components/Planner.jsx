@@ -1,395 +1,436 @@
-import React, { useState, useEffect } from "react";
-import { Col, Row, Divider, Button, Tooltip, DatePicker, Modal, Select as SelectAntd } from 'antd';
-
-import Select from 'react-select';
-import { Input, InputNumber } from "antd";
-import dayjs from 'dayjs';
-import 'dayjs/locale/de';
+import { Button, Collapse, DatePicker, Divider, Form, Input, InputNumber, Modal, Select, Space, theme } from 'antd';
+import { RightOutlined } from '@ant-design/icons';
 import locale from 'antd/es/date-picker/locale/de_DE';
-import { myToastError, myToastSuccess } from "../helper/ToastHelper";
-import { doGetRequestAuth, doPutRequestAuth } from "../helper/RequestHelper";
-import { getCityToID, getUserToID, isAdmin, isExternal } from "../helper/helpFunctions";
-import { useLocation, useNavigate, useParams } from "react-router";
+import dayjs from 'dayjs';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router';
+import { doGetRequestAuth, doPutRequestAuth } from '../helper/RequestHelper';
+import { myToastError, myToastSuccess } from '../helper/ToastHelper';
+import { WORK_TYPES } from '../helper/auftrag';
+import { getCityToID, getUserToID, isAdmin, isExternal } from '../helper/helpFunctions';
+import NummernPicker from './NummernPicker';
 
 const { TextArea } = Input;
-const options = [];
-for (let i = 1; i < 100; i++) {
-  options.push({
-    label: i,
-    value: i,
-  });
+const DATE_FORMAT = 'DD.MM.YYYY';
+
+// Die vier Gruppen der Erfassungsmaske. Die Arbeitsarten selbst kommen aus
+// helper/auftrag.js, damit Beschriftungen und Schlüssel an einer Stelle stehen.
+const GROUPS = [
+  { title: 'Flaschen', keys: ['ff', 'ft'] },
+  { title: 'Masken', keys: ['mp', 'mr'] },
+  { title: 'Lungenautomat', keys: ['lp', 'lr'] },
+  { title: 'Gerät', keys: ['gp', 'gr'] },
+];
+
+// Payload-Schlüssel je Arbeitsart. Das Backend erwartet weiterhin BEIDE
+// Angaben - Anzahl und Nummernliste. Die Anzahl ist aber nichts anderes als
+// die Länge der Liste, deshalb gibt es dafür kein Eingabefeld mehr und der
+// Wert wird hier abgeleitet. Damit ist die alte Abgleichprüfung ("Anzahl der
+// eingegebenen Nummern passt nicht") strukturell unmöglich geworden.
+const PAYLOAD_KEYS = {
+  ff: ['flaschenFuellen', 'flaschenFuellenNr'],
+  ft: ['flaschenTUEV', 'flaschenTUEVNr'],
+  mp: ['maskenPruefen', 'maskenPruefenNr'],
+  mr: ['maskenReinigen', 'maskenReinigenNr'],
+  lp: ['laPruefen', 'laPruefenNr'],
+  lr: ['laReinigen', 'laReinigenNr'],
+  gp: ['geraetePruefen', 'geraetePruefenNr'],
+  gr: ['geraeteReinigen', 'geraeteReinigenNr'],
+};
+
+const WORK_TYPE_BY_KEY = Object.fromEntries(WORK_TYPES.map((t) => [t.key, t]));
+
+function emptyNumbers() {
+  return Object.fromEntries(WORK_TYPES.map((t) => [t.key, []]));
+}
+
+function buildWorkPayload(numbers) {
+  const payload = {};
+  for (const [key, [countKey, nrKey]] of Object.entries(PAYLOAD_KEYS)) {
+    const list = numbers[key] ?? [];
+    payload[countKey] = list.length;
+    payload[nrKey] = list.join(',');
+  }
+  return payload;
+}
+
+// Eine Zeile pro Arbeitsart: Beschriftung sichtbar (vorher steckte sie in
+// einem Tooltip, den es auf Touch nicht gibt), rechts die abgeleitete Anzahl.
+// Bewusst auf Modulebene - innerhalb von Planner definiert waere sie bei jedem
+// Render ein neuer Komponententyp und React wuerde den Teilbaum neu aufbauen.
+function WorkTypeRow({ type, count, disabled, last, token, onOpen }) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onOpen}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        width: '100%',
+        minHeight: 52,
+        padding: '0 4px',
+        background: 'transparent',
+        border: 'none',
+        borderBottom: last ? 'none' : `1px solid ${token.colorBorderSecondary}`,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        color: token.colorText,
+        fontSize: 16,
+        textAlign: 'left',
+      }}
+    >
+      <span>{type.label}</span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span
+          style={{
+            fontVariantNumeric: 'tabular-nums',
+            fontWeight: count ? 600 : 400,
+            color: count ? token.colorPrimary : token.colorTextSecondary,
+          }}
+        >
+          {count || '–'}
+        </span>
+        <RightOutlined aria-hidden style={{ fontSize: 12, color: token.colorTextTertiary }} />
+      </span>
+    </button>
+  );
 }
 
 function Planner(props) {
   const { editId } = useParams();
-  const location = useLocation();
   const navigate = useNavigate();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [txtModalNotice, setTxtModalNotice] = useState("Monatliche Kurzprüfung");
-  const dateFormat = 'DD.MM.YYYY';
+  const { token } = theme.useToken();
+
   const [users, setUsers] = useState([]);
   const [cities, setCities] = useState([]);
   const [selectedUser, setSelectedUser] = useState();
   const [selectedCity, setSelectedCity] = useState();
 
-  const [txtFlaschenFuellen, setTxtFlaschenFuellen] = useState();
-  const [txtFlaschenFuellenNr, setTxtFlaschenFuellenNr] = useState([]);
-  const [txtFlaschenTUEV, setTxtFlaschenTUEV] = useState();
-  const [txtFlaschenTUEVNr, setTxtFlaschenTUEVNr] = useState([]);
+  const [numbers, setNumbers] = useState(emptyNumbers);
+  const [picker, setPicker] = useState(null);
 
-  const [txtMaskenPruefen, setTxtMaskenPruefen] = useState();
-  const [txtMaskenPruefenNr, setTxtMaskenPruefenNr] = useState([]);
-  const [txtMaskenReinigen, setTxtMaskenReinigen] = useState();
-  const [txtMaskenReinigenNr, setTxtMaskenReinigenNr] = useState([]);
+  const [arbeitszeit, setArbeitszeit] = useState();
+  const [datum, setDatum] = useState(dayjs());
+  const [saving, setSaving] = useState(false);
 
-  const [txtLAPruefen, setTxtLAPruefen] = useState();
-  const [txtLAPruefenNr, setTxtLAPruefenNr] = useState([]);
-  const [txtLAReinigen, setTxtLAReinigen] = useState();
-  const [txtLAReinigenNr, setTxtLAReinigenNr] = useState([]);
+  const [extraOpen, setExtraOpen] = useState(false);
+  const [extraNotice, setExtraNotice] = useState('Monatliche Kurzprüfung');
 
-  const [txtGereatePruefen, setTxtGereatePruefen] = useState();
-  const [txtGereatePruefenNr, setTxtGereatePruefenNr] = useState([]);
-  const [txtGereateReinigen, setTxtGereateReinigen] = useState();
-  const [txtGereateReinigenNr, setTxtGereateReinigenNr] = useState([]);
-  <Tooltip placement="right" title="Flaschen füllen"><InputNumber value={txtFlaschenFuellen} onChange={(e) => setTxtFlaschenFuellen(e)} precision={0} min={0} max={10} className="ffInputFull" placeholder={"Flaschen füllen"} /></Tooltip>
-  const inputFields = [
-    {
-      divider: 'Flaschen', content: [
-        { value: { title: 'Flaschen füllen', state: txtFlaschenFuellen, setState: setTxtFlaschenFuellen }, nr: { state: txtFlaschenFuellenNr, setState: setTxtFlaschenFuellenNr } },
-        { value: { title: 'Flaschen TÜV', state: txtFlaschenTUEV, setState: setTxtFlaschenTUEV }, nr: { state: txtFlaschenTUEVNr, setState: setTxtFlaschenTUEVNr } },
-      ]
-    },
-    {
-      divider: 'Masken', content: [
-        { value: { title: 'Masken prüfen', state: txtMaskenPruefen, setState: setTxtMaskenPruefen }, nr: { state: txtMaskenPruefenNr, setState: setTxtMaskenPruefenNr } },
-        { value: { title: 'Masken reinigen', state: txtMaskenReinigen, setState: setTxtMaskenReinigen }, nr: { state: txtMaskenReinigenNr, setState: setTxtMaskenReinigenNr } },
-      ]
-    },
-    {
-      divider: 'Lungenautomat', content: [
-        { value: { title: 'LA prüfen', state: txtLAPruefen, setState: setTxtLAPruefen }, nr: { state: txtLAPruefenNr, setState: setTxtLAPruefenNr } },
-        { value: { title: 'LA reinigen', state: txtLAReinigen, setState: setTxtLAReinigen }, nr: { state: txtLAReinigenNr, setState: setTxtLAReinigenNr } },
-      ]
-    },
-    {
-      divider: 'Gerät', content: [
-        { value: { title: 'Geräte prüfen', state: txtGereatePruefen, setState: setTxtGereatePruefen }, nr: { state: txtGereatePruefenNr, setState: setTxtGereatePruefenNr } },
-        { value: { title: 'Geräte reinigen', state: txtGereateReinigen, setState: setTxtGereateReinigen }, nr: { state: txtGereateReinigenNr, setState: setTxtGereateReinigenNr } },
-      ]
-    },
-  ]
+  const readOnlyExtern = isExternal(props.loggedFunctionNo);
+  const fieldsLocked = readOnlyExtern && Boolean(editId);
 
-  const [txtArbeitszeit, setTxtArbeitszeit] = useState();
-  const [txtDate, setTxtDate] = useState(dayjs());
-
-  function showModal() {
-    setIsModalOpen(true);
-  };
-  function handleModalOk() {
-    if (txtModalNotice === '' || selectedUser === undefined || txtArbeitszeit === undefined || txtDate === null) {
-      myToastError('Bitte alle Felder füllen');
-    } else {
-      const params = { user: selectedUser.value, arbeitszeit: txtArbeitszeit, dateWork: txtDate.format('YYYY-MM-DD'), bemerkung: txtModalNotice };
-      doPutRequestAuth("createExtraEntry", params, props.token).then((e) => {
-        if (e.status === 200) {
-          myToastSuccess('Speichern erfolgreich');
-          setIsModalOpen(false);
-        } else {
-          myToastError('Fehler beim speichern aufgetreten');
-        }
-        setTxtModalNotice("Monatliche Kurzprüfung");
-
-        setTxtArbeitszeit();
-        setTxtDate(dayjs());
-      });
-    }
-  };
-
-  function handleModalCancel() {
-    setIsModalOpen(false);
-  };
-
-  function handleSave() {
-    if (txtDate === null || txtArbeitszeit === undefined || txtArbeitszeit === null || selectedUser === undefined || selectedCity === undefined || selectedUser === null || selectedCity === null) {
-      myToastError('AGW, Feuerwehr, Datum und Arbeitszeit sind Pflichtfelder');
-    } else {
-      let clean = true
-      for (const field of inputFields) {
-        for (const content of field.content) {
-          if (content.value.state && content.value.state !== content.nr.state.length) {
-            clean = false
-          }
-        }
-      }
-
-      if (!clean) {
-        myToastError('Anzahl der eingegebenen Nummern passt nicht');
-      } else {
-        const params = { user: selectedUser.value, city: selectedCity.value, flaschenFuellen: txtFlaschenFuellen, flaschenFuellenNr: txtFlaschenFuellenNr.join(','), flaschenTUEV: txtFlaschenTUEV, flaschenTUEVNr: txtFlaschenTUEVNr.join(','), maskenPruefen: txtMaskenPruefen, maskenPruefenNr: txtMaskenPruefenNr.join(','), maskenReinigen: txtMaskenReinigen, maskenReinigenNr: txtMaskenReinigenNr.join(','), laPruefen: txtLAPruefen, laPruefenNr: txtLAPruefenNr.join(','), laReinigen: txtLAReinigen, laReinigenNr: txtLAReinigenNr.join(','), geraetePruefen: txtGereatePruefen, geraetePruefenNr: txtGereatePruefenNr.join(','), geraeteReinigen: txtGereateReinigen, geraeteReinigenNr: txtGereateReinigenNr.join(','), arbeitszeit: txtArbeitszeit, dateWork: txtDate.format('YYYY-MM-DD'), editId: editId };
-        if (editId) {
-          doPutRequestAuth("saveEntry", params, props.token).then((e) => {
-            if (e.status === 200) {
-              myToastSuccess('Speichern erfolgreich');
-              resetFields()
-              navigate('/')
-            } else {
-              myToastError('Fehler beim speichern aufgetreten');
-            }
-          });
-        } else {
-          doPutRequestAuth("createEntry", params, props.token).then((e) => {
-            if (e.status === 200) {
-              myToastSuccess('Speichern erfolgreich');
-              resetFields()
-            } else {
-              myToastError('Fehler beim speichern aufgetreten');
-            }
-          });
-        }
-      }
-    }
-  }
-
-  function handleExternal() {
-    let clean = true
-    for (const field of inputFields) {
-      for (const content of field.content) {
-        if (content.value.state && content.value.state !== content.nr.state.length) {
-          clean = false
-        }
-      }
-    }
-
-    if (!clean) {
-      myToastError('Anzahl der eingegebenen Nummern passt nicht');
-    } else if (txtDate === null) {
-      myToastError('Datum ist ein Pflichtfelder');
-    } else {
-      const params = {
-        user: selectedUser.value,
-        city: selectedCity.value,
-        flaschenFuellen: txtFlaschenFuellen,
-        flaschenFuellenNr: txtFlaschenFuellenNr.join(','),
-        flaschenTUEV: txtFlaschenTUEV,
-        flaschenTUEVNr: txtFlaschenTUEVNr.join(','),
-        maskenPruefen: txtMaskenPruefen,
-        maskenPruefenNr: txtMaskenPruefenNr.join(','),
-        maskenReinigen: txtMaskenReinigen, maskenReinigenNr:
-          txtMaskenReinigenNr.join(','), laPruefen: txtLAPruefen,
-        laPruefenNr: txtLAPruefenNr.join(','),
-        laReinigen: txtLAReinigen, laReinigenNr:
-          txtLAReinigenNr.join(','), geraetePruefen:
-          txtGereatePruefen, geraetePruefenNr:
-          txtGereatePruefenNr.join(','),
-        geraeteReinigen: txtGereateReinigen,
-        geraeteReinigenNr: txtGereateReinigenNr.join(','),
-        arbeitszeit: 0,
-        dateWork: txtDate.format('YYYY-MM-DD')
-      };
-      doPutRequestAuth("createEntryProposal", params, props.token).then(() => {
-        myToastSuccess('Speichern erfolgreich');
-        resetFields(false)
-      }).catch(() => {
-        myToastError('Fehler beim speichern aufgetreten');
-      });
-    }
-
-  }
-
-  function resetFields(resetCity = true) {
-    if (resetCity) {
-      setSelectedCity(null);
-    }
-
-    setTxtFlaschenFuellen();
-    setTxtFlaschenFuellenNr([]);
-    setTxtFlaschenTUEV();
-    setTxtFlaschenTUEVNr([]);
-
-    setTxtMaskenPruefen();
-    setTxtMaskenPruefenNr([]);
-    setTxtMaskenReinigen();
-    setTxtMaskenReinigenNr([]);
-
-    setTxtLAPruefen();
-    setTxtLAPruefenNr([]);
-    setTxtLAReinigen();
-    setTxtLAReinigenNr([]);
-
-    setTxtGereatePruefen();
-    setTxtGereatePruefenNr([]);
-    setTxtGereateReinigen();
-    setTxtGereateReinigenNr([]);
-
-    setTxtArbeitszeit();
-    setTxtDate(dayjs());
-  }
+  const userOptions = useMemo(
+    () => users.map((u) => ({ value: u.persNo, label: `${u.firstname} ${u.lastname}` })),
+    [users]
+  );
+  const cityOptions = useMemo(
+    () => cities.map((c) => ({ value: c.cityNo, label: c.name })),
+    [cities]
+  );
 
   useEffect(() => {
-    doGetRequestAuth("pers", props.token).then(
-      res => {
-        setUsers(
-          res.data.map(row => ({
-            persNo: row.persNo,
-            firstname: row.firstname,
-            lastname: row.lastname,
-            cityNo: row.cityNo
-          }))
-        );
-      }
-    );
-    doGetRequestAuth("cities", props.token).then(
-      res => {
-        setCities(
-          res.data.map(row => ({
-            cityNo: row.cityNo,
-            name: row.name
-          }))
-        );
-      }
-    );
+    doGetRequestAuth('pers', props.token).then((res) => setUsers(res.data ?? []));
+    doGetRequestAuth('cities', props.token).then((res) => setCities(res.data ?? []));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Vorbelegung: der angemeldete Gerätewart, bei Externen zusätzlich die
+  // eigene Feuerwehr.
   useEffect(() => {
-    if (users.length !== 0 && cities.length !== 0) {
-      let loggedUser = getUserToID(props.loggedPersNo, users);
-      setSelectedUser({ value: loggedUser?.persNo, label: loggedUser?.firstname + " " + loggedUser?.lastname });
-      if (isExternal(props.loggedFunctionNo)) {
-        let loggedCity = getCityToID(loggedUser.cityNo, cities);
-        setSelectedCity({ value: loggedCity?.cityNo, label: loggedCity?.name });
-      }
-      if (editId) {
-        doGetRequestAuth('entry/' + editId, props.token).then((res) => {
-          setTxtArbeitszeit(res.data.arbeitszeit);
-          setTxtDate(dayjs(res.data.dateWork, 'DD.MM.YYYY'));
-          setSelectedCity({ value: res.data.city, label: getCityToID(res.data.city, cities)?.name });
-          setTxtFlaschenFuellen(res.data.flaschenFuellen === 0 ? null : res.data.flaschenFuellen);
-          setTxtFlaschenFuellenNr(res.data.flaschenFuellenNr !== "" ? res.data.flaschenFuellenNr.split(',').map(Number) : []);
-          setTxtFlaschenTUEV(res.data.flaschenTUEV === 0 ? null : res.data.flaschenTUEV);
-          setTxtFlaschenTUEVNr(res.data.flaschenTUEVNr !== "" ? res.data.flaschenTUEVNr.split(',').map(Number) : []);
-          setTxtMaskenPruefen(res.data.maskenPruefen === 0 ? null : res.data.maskenPruefen);
-          setTxtMaskenPruefenNr(res.data.maskenPruefenNr !== "" ? res.data.maskenPruefenNr.split(',').map(Number) : []);
-          setTxtMaskenReinigen(res.data.maskenReinigen === 0 ? null : res.data.maskenReinigen);
-          setTxtMaskenReinigenNr(res.data.maskenReinigenNr !== "" ? res.data.maskenReinigenNr.split(',').map(Number) : []);
-          setTxtLAPruefen(res.data.laPruefen === 0 ? null : res.data.laPruefen);
-          setTxtLAPruefenNr(res.data.laPruefenNr !== "" ? res.data.laPruefenNr.split(',').map(Number) : []);
-          setTxtLAReinigen(res.data.laReinigen === 0 ? null : res.data.laReinigen);
-          setTxtLAReinigenNr(res.data.laReinigenNr !== "" ? res.data.laReinigenNr.split(',').map(Number) : []);
-          setTxtGereatePruefen(res.data.geraetePruefen === 0 ? null : res.data.geraetePruefen);
-          setTxtGereatePruefenNr(res.data.geraetePruefenNr !== "" ? res.data.geraetePruefenNr.split(',').map(Number) : []);
-          setTxtGereateReinigen(res.data.geraeteReinigen === 0 ? null : res.data.geraeteReinigen);
-          setTxtGereateReinigenNr(res.data.geraeteReinigenNr !== "" ? res.data.geraeteReinigenNr.split(',').map(Number) : []);
-        });
-      } else {
-        resetFields(false);
-      }
-
+    if (users.length === 0) return;
+    const me = getUserToID(props.loggedPersNo, users);
+    setSelectedUser(me?.persNo);
+    if (readOnlyExtern && cities.length > 0 && me) {
+      setSelectedCity(getCityToID(me.cityNo, cities)?.cityNo);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [users, cities, location]);
+  }, [users, cities]);
 
-  const optionsUsers = users.map(user => ({
-    value: user.persNo, label: user.firstname + " " + user.lastname
-  }));
-  const optionsCities = cities.map(city => ({
-    value: city.cityNo, label: city.name
-  }));
+  // Bearbeiten: bestehenden Auftrag laden.
+  useEffect(() => {
+    if (!editId) return;
+    doGetRequestAuth('entry/' + editId, props.token).then((res) => {
+      const entry = res.data;
+      setSelectedCity(entry.city);
+      setArbeitszeit(entry.arbeitszeit);
+      setDatum(entry.dateWork ? dayjs(entry.dateWork, DATE_FORMAT) : dayjs());
+      setNumbers(
+        Object.fromEntries(
+          WORK_TYPES.map((t) => [t.key, (entry[t.field] ?? '').split(',').filter(Boolean)])
+        )
+      );
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editId]);
+
+  function resetFields(resetCity = true) {
+    if (resetCity) setSelectedCity(undefined);
+    setNumbers(emptyNumbers());
+    setArbeitszeit(undefined);
+    setDatum(dayjs());
+  }
+
+  const totalItems = Object.values(numbers).reduce((sum, list) => sum + list.length, 0);
+
+  function handleSave() {
+    if (!selectedUser || !selectedCity) {
+      myToastError('Bitte Atemschutzgerätewart und Feuerwehr wählen');
+      return;
+    }
+    if (datum === null) {
+      myToastError('Bitte ein Datum wählen');
+      return;
+    }
+    if (!readOnlyExtern && (arbeitszeit === undefined || arbeitszeit === null)) {
+      myToastError('Bitte die Arbeitszeit angeben');
+      return;
+    }
+    if (totalItems === 0) {
+      myToastError('Bitte mindestens eine Gerätenummer wählen');
+      return;
+    }
+
+    const params = {
+      user: selectedUser,
+      city: selectedCity,
+      ...buildWorkPayload(numbers),
+      arbeitszeit: readOnlyExtern ? 0 : arbeitszeit,
+      dateWork: datum.format('YYYY-MM-DD'),
+      editId,
+    };
+
+    // Externe melden eine Anlieferung an (Auftrag entsteht), Gerätewarte
+    // erfassen erledigte Arbeit.
+    const path = readOnlyExtern ? 'createEntryProposal' : editId ? 'saveEntry' : 'createEntry';
+
+    setSaving(true);
+    doPutRequestAuth(path, params, props.token)
+      .then(() => {
+        myToastSuccess('Speichern erfolgreich');
+        resetFields(!readOnlyExtern);
+        if (editId) navigate('/home');
+      })
+      .catch(() => myToastError('Fehler beim Speichern'))
+      .finally(() => setSaving(false));
+  }
+
+  function handleExtraSave() {
+    if (!selectedUser || arbeitszeit === undefined || arbeitszeit === null || datum === null || extraNotice === '') {
+      myToastError('Bitte alle Felder füllen');
+      return;
+    }
+    const params = {
+      user: selectedUser,
+      arbeitszeit,
+      dateWork: datum.format('YYYY-MM-DD'),
+      bemerkung: extraNotice,
+    };
+    doPutRequestAuth('createExtraEntry', params, props.token)
+      .then(() => {
+        myToastSuccess('Speichern erfolgreich');
+        setExtraOpen(false);
+        setExtraNotice('Monatliche Kurzprüfung');
+        setArbeitszeit(undefined);
+        setDatum(dayjs());
+      })
+      .catch(() => myToastError('Fehler beim Speichern'));
+  }
+
+  const groupItems = GROUPS.map((group) => {
+    const groupCount = group.keys.reduce((sum, k) => sum + (numbers[k]?.length ?? 0), 0);
+    return {
+      key: group.title,
+      label: (
+        <span style={{ display: 'flex', justifyContent: 'space-between', gap: 12, paddingRight: 4 }}>
+          <span style={{ fontWeight: 600 }}>{group.title}</span>
+          {groupCount > 0 && (
+            <span style={{ color: token.colorPrimary, fontVariantNumeric: 'tabular-nums' }}>
+              {groupCount}
+            </span>
+          )}
+        </span>
+      ),
+      children: group.keys.map((k, i) => (
+        <WorkTypeRow
+          key={k}
+          type={WORK_TYPE_BY_KEY[k]}
+          count={numbers[k]?.length ?? 0}
+          disabled={fieldsLocked}
+          last={i === group.keys.length - 1}
+          token={token}
+          onOpen={() => setPicker(k)}
+        />
+      )),
+    };
+  });
 
   return (
-    (users.length !== 0 && cities.length !== 0) ?
-      <div>
-        <Modal title="Sonstige Aufgabe" open={isModalOpen} onOk={handleModalOk} onCancel={handleModalCancel} footer={[
-          <Button key="cancle" onClick={handleModalCancel}>
-            Abbrechen
-          </Button>,
-          <Button key="submit" type="primary" onClick={handleModalOk}>
-            Speichern
+    <>
+      <Form layout="vertical">
+        {editId && <Divider titlePlacement="left">Auftrag #{editId}</Divider>}
+
+        {!readOnlyExtern && (
+          <Form.Item label="Atemschutzgerätewart" required>
+            <Select
+              showSearch
+              aria-label="Atemschutzgerätewart"
+              optionFilterProp="label"
+              disabled={!isAdmin(props.loggedFunctionNo)}
+              value={selectedUser}
+              options={userOptions}
+              onChange={setSelectedUser}
+              placeholder="Atemschutzgerätewart"
+            />
+          </Form.Item>
+        )}
+
+        <Form.Item label="Feuerwehr" required>
+          <Select
+            showSearch
+            aria-label="Feuerwehr"
+            optionFilterProp="label"
+            disabled={readOnlyExtern || Boolean(editId)}
+            value={selectedCity}
+            options={cityOptions}
+            onChange={setSelectedCity}
+            placeholder="Feuerwehr"
+          />
+        </Form.Item>
+
+        <Collapse
+          items={groupItems}
+          defaultActiveKey={GROUPS.map((g) => g.title)}
+          ghost
+          size="large"
+          style={{ marginBottom: 8 }}
+        />
+
+        <Space size={12} style={{ display: 'flex' }} align="start">
+          {!readOnlyExtern && (
+            <Form.Item label="Arbeitszeit (h)" style={{ flex: 1 }} required>
+              <InputNumber
+                value={arbeitszeit}
+                onChange={setArbeitszeit}
+                min={0}
+                max={10}
+                step={0.5}
+                decimalSeparator=","
+                inputMode="decimal"
+                placeholder="z. B. 1,5"
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+          )}
+          <Form.Item label="Datum" style={{ flex: 1 }} required>
+            <DatePicker
+              locale={locale}
+              format={DATE_FORMAT}
+              value={datum}
+              onChange={setDatum}
+              disabled={fieldsLocked}
+              allowClear={false}
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+        </Space>
+      </Form>
+
+      {/* Klebende Leiste: der Speichern-Button lag vorher rund 900px unter dem
+          sichtbaren Bereich. */}
+      <div
+        style={{
+          position: 'sticky',
+          bottom: 0,
+          paddingTop: 12,
+          paddingBottom: 4,
+          background: token.colorBgContainer,
+          borderTop: `1px solid ${token.colorBorderSecondary}`,
+          display: 'flex',
+          gap: 12,
+        }}
+      >
+        {!readOnlyExtern && !editId && (
+          <Button size="large" style={{ flex: 1 }} onClick={() => setExtraOpen(true)}>
+            Sonstige Aufgabe
           </Button>
-        ]}
-
+        )}
+        <Button
+          type="primary"
+          size="large"
+          style={{ flex: 2 }}
+          loading={saving}
+          disabled={fieldsLocked}
+          onClick={handleSave}
         >
+          {totalItems > 0
+            ? `${totalItems} ${totalItems === 1 ? 'Gerät' : 'Geräte'} speichern`
+            : 'Speichern'}
+        </Button>
+      </div>
 
-          <Select isDisabled={!isAdmin(props.loggedFunctionNo)} value={selectedUser} className="ffInputFull" placeholder={"Atemschutzgerätewart"} options={optionsUsers} onChange={(e) => setSelectedUser(e)} />
-          <TextArea rows={4} value={txtModalNotice} onChange={(e) => setTxtModalNotice(e.target.value)} className="ffInputFull" placeholder={"Bemerkung"} />
-          <InputNumber value={txtArbeitszeit} onChange={(e) => setTxtArbeitszeit(e)} min={0} max={10} decimalSeparator={","} className="ffInputFull" placeholder={"Arbeitszeit (h)"} />
-          <DatePicker locale={locale} format={dateFormat} value={txtDate} onChange={(e) => setTxtDate(e)} className="ffInputFull" />
-        </Modal>
-        {
-          editId ? <Divider titlePlacement="left">#{editId}</Divider> : <></>
-        }
-        {!isExternal(props.loggedFunctionNo) ? <Row>
-          <Col span={24}>
-            <Select isDisabled={!isAdmin(props.loggedFunctionNo)} value={selectedUser} className="ffInputFull" placeholder={"Atemschutzgerätewart"} options={optionsUsers} onChange={(e) => setSelectedUser(e)} />
-          </Col>
-        </Row> : <></>}
-        <Row>
-          <Col span={24}>
-            <Select isDisabled={isExternal(props.loggedFunctionNo) || editId} value={selectedCity} className="ffInputFull" placeholder={"Feuerwehr"} options={optionsCities} onChange={(e) => setSelectedCity(e)} />
-          </Col>
-        </Row>
+      <NummernPicker
+        open={picker !== null}
+        title={picker ? WORK_TYPE_BY_KEY[picker].label : ''}
+        value={picker ? numbers[picker] : []}
+        onClose={() => setPicker(null)}
+        onSubmit={(list) => {
+          setNumbers((prev) => ({ ...prev, [picker]: list }));
+          setPicker(null);
+        }}
+      />
 
-        {inputFields.map((e) => (
-          <React.Fragment key={e.divider}>
-            <Divider titlePlacement="left">{e.divider}</Divider>
-            {e.content.map((c) => (
-              <Row key={"r" + c.value.title}>
-                <Col key={"c1" + c.value.title} span={12}>
-                  <Tooltip key={"tt" + c.value.title} placement="right" title={c.value.title}><InputNumber disabled={isExternal(props.loggedFunctionNo) && editId} key={"txt" + c.value.title} value={c.value.state} onChange={(e) => { c.value.setState(e) }} precision={0} min={0} max={10} className="ffInputFull" placeholder={c.value.title} /></Tooltip>
-                </Col>
-                <Col key={"c2" + c.value.title} span={12}>
-                  <SelectAntd
-                    key={"s" + c.value.title}
-                    mode="multiple"
-                    placeholder="Nr."
-                    onChange={(e) => { c.nr.setState(e) }}
-                    options={options}
-                    value={c.nr.state}
-                    style={{
-                      width: '100%',
-                      color: c.value.state !== c.nr.state.length ? 'red' : 'green'
-                    }}
-                    disabled={!c.value.state || (isExternal(props.loggedFunctionNo) && editId)}
-                  />
-                </Col>
-              </Row>
-            ))}
-          </React.Fragment>
-        ))}
-
-        {!isExternal(props.loggedFunctionNo) ? <div>
-          <Divider titlePlacement="left">Arbeitszeit</Divider>
-          <Row>
-            <Col span={12}>
-              <InputNumber value={txtArbeitszeit} onChange={(e) => setTxtArbeitszeit(e)} min={0} max={10} decimalSeparator={","} className="ffInputFull" placeholder={"Arbeitszeit (h)"} />
-            </Col>
-            <Col span={12}>
-              <DatePicker locale={locale} format={dateFormat} value={txtDate} onChange={(e) => setTxtDate(e)} className="ffInputFull" />
-            </Col>
-          </Row>
-          <Row>
-            <Col span={12}>
-              {!editId ? <Button onClick={() => showModal()} className="ffInputFull otherTasksButton">Sonstige Aufgaben</Button> : <></>}
-            </Col>
-            <Col span={12}>
-              <Button onClick={() => handleSave()} className="ffInputFull" type="primary">{'Speichern'}</Button>
-            </Col>
-          </Row>
-        </div> : <div>
-          <Divider titlePlacement="left">Abschluss</Divider>
-          <Row>
-            <Col span={12}>
-              <DatePicker disabled={editId} locale={locale} format={dateFormat} value={txtDate} onChange={(e) => setTxtDate(e)} className="ffInputFull" />
-            </Col>
-            <Col span={12}>
-              <Button disabled={editId} onClick={() => handleExternal()} className="ffInputFull" type="primary">{editId ? 'Update' : 'Anlegen'}</Button>
-            </Col>
-          </Row>
-
-        </div>}
-
-
-      </div> : <div>Daten werden geladen</div>);
+      <Modal
+        title="Sonstige Aufgabe"
+        open={extraOpen}
+        onCancel={() => setExtraOpen(false)}
+        onOk={handleExtraSave}
+        okText="Speichern"
+        cancelText="Abbrechen"
+      >
+        <Form layout="vertical">
+          <Form.Item label="Atemschutzgerätewart">
+            <Select
+              showSearch
+              optionFilterProp="label"
+              disabled={!isAdmin(props.loggedFunctionNo)}
+              value={selectedUser}
+              options={userOptions}
+              onChange={setSelectedUser}
+            />
+          </Form.Item>
+          <Form.Item label="Bemerkung">
+            <TextArea rows={3} value={extraNotice} onChange={(e) => setExtraNotice(e.target.value)} />
+          </Form.Item>
+          <Space size={12} style={{ display: 'flex' }} align="start">
+            <Form.Item label="Arbeitszeit (h)" style={{ flex: 1, marginBottom: 0 }}>
+              <InputNumber
+                value={arbeitszeit}
+                onChange={setArbeitszeit}
+                min={0}
+                max={10}
+                step={0.5}
+                decimalSeparator=","
+                inputMode="decimal"
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+            <Form.Item label="Datum" style={{ flex: 1, marginBottom: 0 }}>
+              <DatePicker
+                locale={locale}
+                format={DATE_FORMAT}
+                value={datum}
+                onChange={setDatum}
+                allowClear={false}
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+          </Space>
+        </Form>
+      </Modal>
+    </>
+  );
 }
 
 export default Planner;

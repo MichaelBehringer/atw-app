@@ -31,14 +31,14 @@ func GetEntryByID(id string) EntryObj {
 func GetSearchResultOpen(searchParam SearchParamExtra) []SearchResultOpen {
 	var results *sql.Rows
 	if searchParam.IsExternal {
-		results = ExecuteSQL("select d.DATA_NO, ac.CITY_NAME, d.CITY_NO, DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.state from atemschutzpflegestelle_data d inner join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO inner join pers p on d.CITY_NO=p.CITY_NO where p.PERS_NO=? order by d.STATE asc, d.DATA_NO desc", searchParam.PersNo)
+		results = ExecuteSQL("select d.DATA_NO, ac.CITY_NAME, d.CITY_NO, DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.state, ifnull(n.FLASCHEN_FUELLEN_NR,''), ifnull(n.FLASCHEN_TUEV_NR,''), ifnull(n.MASKEN_PRUEFEN_NR,''), ifnull(n.MASKEN_REINIGEN_NR,''), ifnull(n.LA_PRUEFEN_NR,''), ifnull(n.LA_REINIGEN_NR,''), ifnull(n.GERAETE_PRUEFEN_NR,''), ifnull(n.GERAETE_REINIGEN_NR,'') from atemschutzpflegestelle_data d inner join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO inner join pers p on d.CITY_NO=p.CITY_NO left join atemschutzpflegestelle_nr n on d.DATA_NO = n.DATA_NO where p.PERS_NO=? order by d.STATE asc, d.DATA_NO desc", searchParam.PersNo)
 	} else {
-		results = ExecuteSQL("select d.DATA_NO, ac.CITY_NAME, d.CITY_NO, DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.state from atemschutzpflegestelle_data d inner join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO where d.state='open' order by d.STATE asc, d.DATA_NO desc")
+		results = ExecuteSQL("select d.DATA_NO, ac.CITY_NAME, d.CITY_NO, DATE_FORMAT(d.DATE_WORK, '%d.%m.%Y'), d.state, ifnull(n.FLASCHEN_FUELLEN_NR,''), ifnull(n.FLASCHEN_TUEV_NR,''), ifnull(n.MASKEN_PRUEFEN_NR,''), ifnull(n.MASKEN_REINIGEN_NR,''), ifnull(n.LA_PRUEFEN_NR,''), ifnull(n.LA_REINIGEN_NR,''), ifnull(n.GERAETE_PRUEFEN_NR,''), ifnull(n.GERAETE_REINIGEN_NR,'') from atemschutzpflegestelle_data d inner join atemschutzpflegestelle_cities ac on d.CITY_NO=ac.CITY_NO left join atemschutzpflegestelle_nr n on d.DATA_NO = n.DATA_NO where d.state='open' order by d.STATE asc, d.DATA_NO desc")
 	}
 	searchResults := []SearchResultOpen{}
 	for results.Next() {
 		var searchResult SearchResultOpen
-		results.Scan(&searchResult.DataNo, &searchResult.City, &searchResult.CityNo, &searchResult.DateWork, &searchResult.State)
+		results.Scan(&searchResult.DataNo, &searchResult.City, &searchResult.CityNo, &searchResult.DateWork, &searchResult.State, &searchResult.FlaschenFuellenNr, &searchResult.FlaschenTuevNr, &searchResult.MaskenPruefenNr, &searchResult.MaskenReinigenNr, &searchResult.LaPruefenNr, &searchResult.LaReinigenNr, &searchResult.GeraetePruefenNr, &searchResult.GeraeteReinigenNr)
 		searchResults = append(searchResults, searchResult)
 	}
 	return searchResults

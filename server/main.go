@@ -9,9 +9,16 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Laedt server/.env, falls vorhanden. Fehlt die Datei, ist das kein Fehler -
+	// im Container kommen die Werte aus docker-compose. Bereits gesetzte
+	// Umgebungsvariablen werden nicht ueberschrieben, echte Env-Vars haben
+	// also Vorrang vor der Datei.
+	godotenv.Load()
+
 	InitDB()
 	defer CloseDB()
 
