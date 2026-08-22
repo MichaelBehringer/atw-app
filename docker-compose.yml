@@ -14,6 +14,8 @@ services:
       ATW_LISTEN_ADDR: ":8080"
       ATW_JWT_SECRET: "my_secret_key"
       GIN_MODE: "release"
+      # Benachrichtigungen sind hier bewusst ausdruecklich an.
+      ATW_NTFY_ENABLED: "true"
   ui:
     build: ui
     deploy:
