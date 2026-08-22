@@ -4,6 +4,7 @@ import { DeleteOutlined, DownloadOutlined, PlusOutlined, TeamOutlined } from "@a
 import { myToastError, myToastSuccess } from "../helper/ToastHelper";
 import { doDeleteRequestAuth, doGetRequestAuth, doGetRequestBlob, doPostRequestAuth, doPutRequestAuth } from "../helper/RequestHelper";
 import { useNavigate } from "react-router";
+import useCloseOnBack from "../hooks/useCloseOnBack";
 
 const { Title } = Typography;
 
@@ -14,6 +15,8 @@ function Evaluation(props) {
   const [downloading, setDownloading] = useState(false);
   const navigate = useNavigate();
   const { token } = theme.useToken();
+
+  useCloseOnBack(isModalFFOpen, () => setIsModalFFOpen(false));
 
   function loadCities() {
     return doGetRequestAuth("cities", props.token)

@@ -3,6 +3,7 @@ import locale from 'antd/es/date-picker/locale/de_DE'
 import dayjs from 'dayjs'
 import { useEffect, useMemo, useState } from 'react'
 import { buildSections, buildWorkingPoints, isComplete } from '../helper/auftrag'
+import useCloseOnBack from '../hooks/useCloseOnBack'
 import useIsMobile from '../hooks/useIsMobile'
 
 const DATE_FORMAT = 'DD.MM.YYYY'
@@ -39,6 +40,10 @@ export default function AuftragSheet({ entry, open, onClose, onSubmit, saving })
   const [datum, setDatum] = useState(dayjs())
 
   const sections = useMemo(() => buildSections(entry), [entry])
+
+  // Zurueck-Geste schliesst das Sheet statt die App.
+  useCloseOnBack(open, onClose)
+
 
   // Bei jedem neu geöffneten Auftrag von vorn anfangen.
   useEffect(() => {

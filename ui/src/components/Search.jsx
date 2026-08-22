@@ -4,6 +4,7 @@ import { myToastError, myToastSuccess } from "../helper/ToastHelper";
 import { doDeleteRequestAuth, doGetRequestAuth, doPostRequestAuth } from "../helper/RequestHelper";
 import { WORK_TYPES, summarizeSearchRow } from "../helper/auftrag";
 import { getUserToID, isAdmin } from "../helper/helpFunctions";
+import useCloseOnBack from "../hooks/useCloseOnBack";
 import useIsMobile from "../hooks/useIsMobile";
 
 // Die erfassten Arbeiten als Chips - nur was tatsächlich anfiel.
@@ -34,6 +35,7 @@ function Search(props) {
   const isMobile = useIsMobile();
   const { token } = theme.useToken();
   const darfBearbeiten = isAdmin(props.loggedFunctionNo);
+  useCloseOnBack(Boolean(entwurf), () => setEntwurf(undefined));
 
   const userOptions = useMemo(
     () => users.map((u) => ({ value: u.persNo, label: `${u.firstname} ${u.lastname}` })),

@@ -1,9 +1,12 @@
 import { Modal, Form, Input, Button } from 'antd';
 import { doPostRequestAuth } from '../helper/RequestHelper';
 import { myToastError, myToastSuccess } from '../helper/ToastHelper';
+import useCloseOnBack from '../hooks/useCloseOnBack';
 
 const ChangePasswordModal = ({ visible, setIsVisible, loggedPersNo, token, onClose }) => {
     const [form] = Form.useForm();
+
+    useCloseOnBack(visible, onClose);
 
     const handleOk = () => {
         form.validateFields()

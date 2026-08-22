@@ -1,5 +1,6 @@
 import { Button, Drawer, theme } from 'antd'
 import { useEffect, useState } from 'react'
+import useCloseOnBack from '../hooks/useCloseOnBack'
 import useIsMobile from '../hooks/useIsMobile'
 
 export const MAX_NUMMER = 99
@@ -22,6 +23,7 @@ export default function NummernPicker({
   const { token } = theme.useToken()
   const isMobile = useIsMobile()
   const [selected, setSelected] = useState([])
+  useCloseOnBack(open, onClose)
 
   // Beim Öffnen den aktuellen Stand übernehmen, damit Abbrechen wirklich
   // nichts verändert.

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { doDeleteRequestAuth, doGetRequestAuth, doPostRequestAuth } from "../helper/RequestHelper";
 import { myToastError, myToastSuccess } from "../helper/ToastHelper";
 import { isExternal } from "../helper/helpFunctions";
+import useCloseOnBack from "../hooks/useCloseOnBack";
 import useIsMobile from "../hooks/useIsMobile";
 import AddUserModal from "./AddUserModal";
 
@@ -18,6 +19,8 @@ function UserManagement(props) {
 
   const isMobile = useIsMobile();
   const { token } = theme.useToken();
+  useCloseOnBack(Boolean(entwurf), () => setEntwurf(undefined));
+  useCloseOnBack(addOpen, () => setAddOpen(false));
 
   function loadUser() {
     setLoading(true);

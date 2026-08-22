@@ -8,6 +8,7 @@ import { doGetRequestAuth, doPutRequestAuth } from '../helper/RequestHelper';
 import { myToastError, myToastSuccess } from '../helper/ToastHelper';
 import { WORK_TYPES } from '../helper/auftrag';
 import { getCityToID, getUserToID, isAdmin, isExternal } from '../helper/helpFunctions';
+import useCloseOnBack from '../hooks/useCloseOnBack';
 import useIsMobile from '../hooks/useIsMobile';
 import NummernPicker from './NummernPicker';
 
@@ -128,6 +129,10 @@ function Planner(props) {
 
   const [extraOpen, setExtraOpen] = useState(false);
   const [extraNotice, setExtraNotice] = useState('Monatliche Kurzprüfung');
+
+  // Zurueck-Geste schliesst das offene Overlay statt die App.
+  useCloseOnBack(picker !== null, () => setPicker(null));
+  useCloseOnBack(extraOpen, () => setExtraOpen(false));
 
   const readOnlyExtern = isExternal(props.loggedFunctionNo);
   const fieldsLocked = readOnlyExtern && Boolean(editId);

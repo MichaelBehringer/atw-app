@@ -3,6 +3,7 @@ import { useState } from "react";
 import { myToastError, myToastSuccess } from "../helper/ToastHelper";
 import { getWemding, isExternal } from "../helper/helpFunctions";
 import { doPutRequestAuth } from "../helper/RequestHelper";
+import useCloseOnBack from "../hooks/useCloseOnBack";
 
 function AddUserModal(props) {
 	const [selectedFunction, setSelectedFunction] = useState();
@@ -12,6 +13,8 @@ function AddUserModal(props) {
 	const [txtUsername, setTxtUsername] = useState('');
 	const [txtPassword, setTxtPassword] = useState('');
 	const [saving, setSaving] = useState(false);
+
+	useCloseOnBack(props.isModalAGWOpen, () => handleClose());
 
 	function reset() {
 		setSelectedFunction(undefined);
