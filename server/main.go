@@ -53,7 +53,7 @@ func main() {
 
 	router.GET("/file", file)
 
-	router.Run("localhost:8080")
+	router.Run(Env("ATW_LISTEN_ADDR", ":8080"))
 }
 
 func login(c *gin.Context) {

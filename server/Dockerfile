@@ -1,5 +1,5 @@
-# Erstellen Sie ein temporäres Build-Image
-FROM golang:1.21.5 AS build
+# Build-Stage
+FROM golang:1.27-alpine AS build
 
 WORKDIR /app
 
@@ -10,12 +10,14 @@ COPY ./ ./
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o ./server
 
-# Erstellen Sie das endgültige Image auf Basis von Distroless
-FROM gcr.io/distroless/base
+# Laufzeit-Image: distroless/static reicht, weil ohne CGO gebaut wird
+FROM gcr.io/distroless/static
 
 COPY --from=build /app/server /app/server
 COPY --from=build /app/ressources/ /app/ressources/
 
 WORKDIR /app
+
+EXPOSE 8080
 
 CMD ["./server"]

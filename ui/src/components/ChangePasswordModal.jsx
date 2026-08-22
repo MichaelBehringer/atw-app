@@ -1,4 +1,3 @@
-import React from 'react';
 import { Modal, Form, Input, Button } from 'antd';
 import { doPostRequestAuth } from '../helper/RequestHelper';
 import { myToastError, myToastSuccess } from '../helper/ToastHelper';
@@ -10,16 +9,16 @@ const ChangePasswordModal = ({ visible, setIsVisible, loggedPersNo, token, onClo
         form.validateFields()
             .then(values => {
                 const params = { persNo: loggedPersNo, password: values.newPassword, passwordOld: values.oldPassword };
-                doPostRequestAuth("password", params, token).then((res) => {
+                doPostRequestAuth("password", params, token).then(() => {
                     setIsVisible(false);
                     form.resetFields();
                     myToastSuccess("Passwort erfolgreich geändert")
-                }, error => {
+                }, () => {
                     myToastError("Altes Passwort stimmt nicht")
                 }
                 );
             })
-            .catch(info => {
+            .catch(() => {
             });
     };
 

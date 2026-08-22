@@ -3,7 +3,7 @@ import { isExternal } from "../helper/helpFunctions";
 import { CheckCircleOutlined, EyeOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { doGetRequestAuth, doPostRequestAuth } from "../helper/RequestHelper";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import dayjs from 'dayjs';
 import 'dayjs/locale/de';
 import locale from 'antd/es/date-picker/locale/de_DE';

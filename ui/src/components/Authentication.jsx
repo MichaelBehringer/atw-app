@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Form, Input, Button, Checkbox, Card, Row, Col, Typography, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { doPostRequest } from '../helper/RequestHelper';
 
 const { Title } = Typography;
@@ -29,7 +29,7 @@ function Authentication(props) {
 	return (
 		<div style={{
 			height: '100vh',
-			backgroundImage: 'url(background_login.jpg)',
+			backgroundImage: 'url(/background_login.jpg)',
 			backgroundSize: 'cover',
 			backgroundPosition: 'center',
 			display: 'flex',

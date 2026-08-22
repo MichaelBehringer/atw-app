@@ -1,14 +1,14 @@
-FROM node:lts-alpine AS build
+FROM node:24-alpine AS build
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 COPY . .
 
 RUN npm run build
 
-# Erstellen Sie das endgültige Image auf Basis von Apache
+# Endgueltiges Image auf Basis von Apache
 FROM httpd:2.4-alpine
 
-COPY --from=build /app/build/ /usr/local/apache2/htdocs/
+COPY --from=build /app/dist/ /usr/local/apache2/htdocs/

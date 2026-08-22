@@ -9,7 +9,7 @@ import locale from 'antd/es/date-picker/locale/de_DE';
 import { myToastError, myToastSuccess } from "../helper/ToastHelper";
 import { doGetRequestAuth, doPutRequestAuth } from "../helper/RequestHelper";
 import { getCityToID, getUserToID, isAdmin, isExternal } from "../helper/helpFunctions";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router";
 
 const { TextArea } = Input;
 const options = [];
@@ -186,10 +186,10 @@ function Planner(props) {
         arbeitszeit: 0,
         dateWork: txtDate.format('YYYY-MM-DD')
       };
-      doPutRequestAuth("createEntryProposal", params, props.token).then((e) => {
+      doPutRequestAuth("createEntryProposal", params, props.token).then(() => {
         myToastSuccess('Speichern erfolgreich');
         resetFields(false)
-      }).catch((e) => {
+      }).catch(() => {
         myToastError('Fehler beim speichern aufgetreten');
       });
     }

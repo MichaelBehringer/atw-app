@@ -1,9 +1,9 @@
-import React, {useState} from "react";
+import { useState } from "react";
 import {Col, Row, Input, Button, Divider, Modal, Table, Popconfirm, Space} from 'antd';
 import {DeleteOutlined, SaveOutlined} from "@ant-design/icons";
 import {myToastError, myToastSuccess} from "../helper/ToastHelper";
 import {doDeleteRequestAuth, doGetRequestAuth, doGetRequestBlob, doPostRequestAuth, doPutRequestAuth} from "../helper/RequestHelper";
-import {useNavigate} from "react-router-dom";
+import {useNavigate} from "react-router";
 
 function Evaluation(props) {
   const [isModalFFOpen, setIsModalFFOpen] = useState(false);
@@ -18,11 +18,11 @@ function Evaluation(props) {
 
   function createNewCity() {
     const params = { name: txtNewCity };
-      doPutRequestAuth("createCity", params, props.token).then((e) => {
+      doPutRequestAuth("createCity", params, props.token).then(() => {
           myToastSuccess('Speichern erfolgreich');
           loadCities();
           setTxtNewCity()
-      }, error => {
+      }, () => {
         myToastError('Fehler beim speichern aufgetreten/Feuerwehr schon vorhanden');
       }
         );

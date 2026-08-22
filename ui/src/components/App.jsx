@@ -1,6 +1,6 @@
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router";
 import Planner from "./Planner";
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Home from "./Home";
 import Evaluation from "./Evaluation";
 import Search from "./Search";

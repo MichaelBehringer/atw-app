@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from "react";
+import { useState, useEffect } from "react";
 import {EditOutlined} from '@ant-design/icons';
 import {Button, Input, InputNumber, Modal, Table} from 'antd';
 

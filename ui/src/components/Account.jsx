@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import { useState } from "react";
 import {Col, Row, Input, Button, Divider, Modal} from 'antd';
 import { myToastError, myToastSuccess } from "../helper/ToastHelper";
 import { doPostRequestAuth } from "../helper/RequestHelper";
@@ -32,13 +32,13 @@ function Account(props) {
       return
     }
     const params = {persNo: props.loggedPersNo, password: txtPWNew1, passwordOld: txtPWOld};
-    doPostRequestAuth("password", params, props.token).then((res) => {
+    doPostRequestAuth("password", params, props.token).then(() => {
         setIsModalPWOpen(false);
         settxtPWOld()
         settxtPWNew1()
         settxtPWNew2()
         myToastSuccess("Passwort erfolgreich geändert")
-    }, error => {
+    }, () => {
         myToastError("Altes Passwort stimmt nicht")
       }
     );

@@ -1,4 +1,3 @@
-version: '3'
 services:
   server:
     build: server
@@ -8,6 +7,13 @@ services:
     restart: always
     extra_hosts:
     - "host.docker.internal:host-gateway"
+    environment:
+      # Siehe server/.env.example. Ohne diese Werte greifen die Defaults aus
+      # dem Quellcode, die identisch mit dem bisherigen Verhalten sind.
+      ATW_DB_DSN: "ffwadmin:gnidmewff@tcp(host.docker.internal:3306)/ffw"
+      ATW_LISTEN_ADDR: ":8080"
+      ATW_JWT_SECRET: "my_secret_key"
+      GIN_MODE: "release"
   ui:
     build: ui
     deploy:
@@ -15,7 +21,7 @@ services:
       replicas: 1
     restart: always
   nginx:
-    image: nginx:alpine
+    image: nginx:1.30-alpine
     volumes:
      - ./conf.d:/etc/nginx/conf.d
      - ./certs:/etc/nginx/certs
