@@ -118,9 +118,9 @@ Aktualisieren unberührt.
 Aus der Crontab (`sudo crontab -u root -e`):
 
 ```cron
-30 2 * * * sh /home/ubuntu/atw-app/certs/cert.sh
+30 2 * * * sh /root/atw-app/certs/cert.sh
 0 3 * * * /sbin/shutdown -r
-0 */6 * * * /home/ubuntu/atw-app/backup/backup.sh
+0 */6 * * * /root/atw-app/backup/backup.sh
 ```
 
 ## Entwicklung
