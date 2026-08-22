@@ -32,30 +32,65 @@ Wichtig dabei: aus Sicht von MySQL kommt die Verbindung **nicht** von
 `localhost`, sondern von der Adresse der Docker-Bridge (üblicherweise
 `172.17.0.1`). Zwei Dinge müssen deshalb stimmen.
 
-**MySQL muss auf dieser Adresse lauschen.** Standard auf Debian/Ubuntu ist nur
-`127.0.0.1`, dann gibt es `connection refused`. In
-`/etc/mysql/mysql.conf.d/mysqld.cnf`:
+Drei Dinge müssen stimmen. Die Fehlermeldung im Log sagt, welches davon fehlt:
+
+| Meldung | Ursache |
+|---|---|
+| `connection refused` | MySQL lauscht nicht auf dieser Adresse |
+| `i/o timeout` | Pakete werden verworfen — Firewall |
+| `Access denied` | Benutzer nicht von dieser Adresse zugelassen |
+
+**1. MySQL muss auf der Bridge lauschen.** Standard auf Debian/Ubuntu ist nur
+`127.0.0.1`. In `/etc/mysql/mysql.conf.d/mysqld.cnf` (bei MariaDB
+`/etc/mysql/mariadb.conf.d/50-server.cnf`):
 
 ```ini
 bind-address = 127.0.0.1,172.17.0.1
 ```
 
-Die Doppelangabe gibt es ab MySQL 8.0.13 und ist die sparsamste Variante:
-Skripte auf dem Host funktionieren weiter, und der Port ist nicht im ganzen
-Netz offen. Bei älterem MySQL geht nur `0.0.0.0` — dann Port 3306 zusätzlich per
-Firewall schließen:
+Die Doppelangabe gibt es ab MySQL 8.0.13 bzw. MariaDB 10.11 und ist die
+sparsamste Variante: Skripte auf dem Host funktionieren weiter, und der Port ist
+nicht im ganzen Netz offen. Bei älteren Versionen geht nur `0.0.0.0`.
+
+Danach `sudo systemctl restart mysql` (bzw. `mariadb`) und prüfen:
 
 ```bash
-sudo ufw deny 3306
+sudo ss -tlnp | grep 3306
 ```
 
-Danach:
+**2. Die Firewall muss den Container durchlassen.** Das ist die Stelle, die am
+meisten Zeit kostet, weil sie unauffällig ist.
+
+Der Container liegt im Compose-Netz (`172.18.x.x`) und spricht die MySQL über
+die Adresse der Docker-Bridge (`172.17.0.1`) an. Das ist eine Adresse des Hosts,
+der Verkehr läuft also durch die **INPUT**-Kette — und dort greift die
+Standardregel von ufw, die alles verwirft. Docker legt dafür **keine** Regel an.
+
+Ergebnis: `i/o timeout`. Nicht `connection refused`, weil die Pakete gar nicht
+ankommen. Und ein `ufw deny 3306` macht es endgültig dicht, auch für den
+Container.
 
 ```bash
-sudo systemctl restart mysql
+# Vorhandene Sperre für 3306 zuerst entfernen, Regeln gelten in ihrer Reihenfolge
+sudo ufw status numbered
+sudo ufw delete <nummer>
+
+# Docker-Netze durchlassen. 172.16.0.0/12 deckt 172.16.x bis 172.31.x ab, also
+# die Standard-Bridge und alle Compose-Netze.
+sudo ufw allow from 172.16.0.0/12 to any port 3306 proto tcp
+sudo ufw reload
 ```
 
-**Der Benutzer muss vom Docker-Subnetz zugelassen sein.** Ein Benutzer
+Enger geht es mit den konkreten Subnetzen, die aber wechseln können:
+
+```bash
+docker network inspect atw-app_default -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}'
+```
+
+Ist ufw gar nicht aktiv (`sudo ufw status` sagt `inactive`), liegt es nicht
+daran — dann prüfen, ob der Anbieter der VM eine eigene Firewall davor hat.
+
+**3. Der Benutzer muss vom Docker-Subnetz zugelassen sein.** Ein Benutzer
 `'ffwadmin'@'localhost'` reicht nicht:
 
 ```sql
