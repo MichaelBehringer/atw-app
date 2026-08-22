@@ -36,15 +36,6 @@
   }
 }
 
-/* Nichts darf horizontal ueberlaufen. Fuer den Fall, dass irgendwo doch ein
-   zu breites Element auftaucht, soll es abgeschnitten werden statt die ganze
-   Seite seitlich verschiebbar zu machen. */
-html,
-body {
-  overflow-x: hidden;
-  max-width: 100%;
-}
-
 html {
   /* Verhindert, dass iOS im Querformat die Schrift eigenmaechtig
      hochskaliert. */
