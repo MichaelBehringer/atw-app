@@ -58,13 +58,13 @@ function Account(props) {
         <Input type="password" value={txtPWNew1} onChange={(e)=>settxtPWNew1(e.target.value)} placeholder="Passwort neu" />
         <Input type="password" value={txtPWNew2} onChange={(e)=>settxtPWNew2(e.target.value)} placeholder="Passwort neu" />
       </Modal>
-      <Divider orientation="left">Account</Divider>
+      <Divider titlePlacement="left">Account</Divider>
       <Row>
         <Col span={24}>
           <Button onClick={() => showPWModal()} className="ffInputFull marginButton" type="primary">Passwort Ändern</Button>
         </Col>
       </Row>
-      <Divider orientation="left">Benachrichtigungen</Divider>
+      <Divider titlePlacement="left">Benachrichtigungen</Divider>
 
     </div>
   );

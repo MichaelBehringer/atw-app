@@ -128,7 +128,7 @@ function Evaluation(props) {
       </Space.Compact>
         <Table scroll={{x: 400}} dataSource={cities} columns={columnsFF} />
       </Modal>
-      <Divider orientation="left">Verwalten</Divider>
+      <Divider titlePlacement="left">Verwalten</Divider>
       <Row>
         <Col span={24}>
           <Button onClick={() => navigate('/userManagement')} className="ffInputFull marginButton" type="primary">AGW Verwalten</Button>
@@ -139,7 +139,7 @@ function Evaluation(props) {
           <Button onClick={() => showFFModal()} className="ffInputFull marginButton" type="primary">Feuerwehren Verwalten</Button>
         </Col>
       </Row>
-      <Divider orientation="left">Auswertungen</Divider>
+      <Divider titlePlacement="left">Auswertungen</Divider>
       <Row>
         <Col span={24}>
           <Button onClick={() => console.log('aaa')} className="ffInputFull marginButton" type="primary">Jahresauswertung AGW</Button>

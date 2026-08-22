@@ -1,3 +1,28 @@
+/*
+ * Globale Basis. Alles, was Farben, Groessen und Abstaende betrifft, gehoert
+ * in src/theme.js (antd-Tokens) - hier steht nur, was Tokens nicht abdecken:
+ * Verhalten des Dokuments und die Safe-Area der installierten App.
+ */
+
+:root {
+  /* Insets fuer Notch und Home-Indicator. Ohne viewport-fit=cover in der
+     index.html sind sie 0, deshalb der Fallback. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Hoehe der Bottom-Navigation, damit Seiteninhalte darunter nicht
+     verschwinden. */
+  --bottom-nav-height: 60px;
+}
+
+html {
+  /* Verhindert, dass iOS im Querformat die Schrift eigenmaechtig
+     hochskaliert. */
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -5,138 +30,42 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Kein Gummiband-Effekt am Rand der installierten App - das fuehlt sich
+     sonst nach Webseite statt nach App an. */
+  overscroll-behavior-y: none;
+
+  /* Der graue Aufblitz-Kasten beim Antippen auf Android/iOS. antd zeichnet
+     eigene Zustaende, der Doppel-Effekt wirkt unsauber. */
+  -webkit-tap-highlight-color: transparent;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
-
-
-.imgcontainer {
-  text-align: center;
-  margin: 24px 0 12px 0;
-}
-
-img.logo {
-  border-radius: 50%;
-  border: solid;
-}
-
-
-.loginContainer {
-  padding: 16px;
-}
-
-.loginElement {
-  width: 100%;
-  margin: 8px 0;
-  /* border: 1px solid #ccc;
-  box-sizing: border-box; */
-}
-
-/* .ffButton {
-  align-items: center;
-  background-clip: padding-box;
-  background-color: #fa6400;
-  border: 1px solid transparent;
-  border-radius: .25rem;
-  box-shadow: rgba(0, 0, 0, 0.02) 0 1px 3px 0;
-  box-sizing: border-box;
-  color: #fff;
-  cursor: pointer;
-  display: inline-flex;
-  /* font-family: system-ui,-apple-system,system-ui,"Helvetica Neue",Helvetica,Arial,sans-serif; 
-  font-size: 16px;
-  font-weight: 600;
-  justify-content: center;
-  line-height: 1.25;
-  margin: 0;
-  min-height: 3rem;
-  /* padding: calc(.875rem - 1px) calc(1.5rem - 1px); 
-  position: relative;
-  text-decoration: none;
-  transition: all 250ms;
-  user-select: none;
-  -webkit-user-select: none;
+/* Nimmt die 300ms Verzoegerung, die mobile Browser vor einem Klick auf einen
+   moeglichen Doppeltipp warten. Betrifft jedes Bedienelement. */
+button,
+a,
+[role='button'],
+.ant-btn,
+.ant-checkbox-wrapper,
+.ant-radio-wrapper,
+.ant-segmented-item {
   touch-action: manipulation;
-  vertical-align: baseline;
-  width: 100%;
 }
 
-.ffButton:hover,
-.ffButton:focus {
-  background-color: #fb8332;
-  box-shadow: rgba(0, 0, 0, 0.1) 0 4px 12px;
-}
-
-.ffButton:hover {
-  transform: translateY(-1px);
-}
-
-.ffButton:active {
-  background-color: #c85000;
-  box-shadow: rgba(0, 0, 0, .06) 0 2px 4px;
-  transform: translateY(0);
-}
-
-.logo {
-  position: absolute;
-  top: 0px;
-  right: 0px;
-  height: 98px;
-  border-radius: 15px;
-  cursor: pointer;
-  border:1px solid #fa6400;
-}
-
-.headline {
-  margin: 0px;
-  color: #fff;
-  font-size: 32px;
-  font-weight: 600;
-  text-align: center;
-}
-
-.headlineContainer {
-  background-color: #fb8332;
-  height: 100px;
-  width: 100%;
-  margin-bottom: 15px;
-} */
-
-.mainContent {
-  margin-top: 3px;
-  margin-bottom: 3px;
-  margin-left: 67px;
-}
-
+/* Volle Breite fuer Eingaben und Buttons. Mit ueber 30 Verwendungen die
+   einzige Regel, die aus der alten Datei uebernommen wird. */
 .ffInputFull {
   width: 100%;
 }
 
+/* Abstand zwischen gestapelten Buttons. Der alte Wert war 3px - zu wenig, um
+   zwei Full-Width-Buttons mit dem Daumen auseinanderzuhalten. */
 .marginButton {
-  margin-bottom: 3px;
+  margin-bottom: 10px;
 }
 
-.ffInputHalf {
-  width: 50%;
-}
-
-.ant-click-animating-node {
-  display: none;
-}
-
-.nav-style {
-  position: fixed !important;
-  z-index: 1000 !important;
-}
-
-.otherTasksButton {
-  background-color: #35dc1e;
-  color: white;
-}
-
-.tableElem {
-  min-width: 200px;
+/* Lange Tabellenkopf-Texte ("Flaschen reinigen") duerfen umbrechen statt die
+   Spalte aufzublasen. */
+.ant-table-thead .ant-table-cell {
+  word-break: break-word;
 }

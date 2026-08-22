@@ -160,7 +160,7 @@ function Home(props) {
         <DatePicker locale={locale} format={dateFormat} value={txtDate} onChange={(e) => setTxtDate(e)} className="ffInputFull" style={{ marginTop: 16 }}/>
       </Modal>
       <p>Atemschutzpflegestelle Wemding</p>
-      <Divider orientation="left">Aufträge</Divider>
+      <Divider titlePlacement="left">Aufträge</Divider>
       <Table scroll={{x: 400}} dataSource={dataSource} columns={columns} />
     </div>
   );

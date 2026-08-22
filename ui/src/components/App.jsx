@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router";
+import { Route, Routes, useLocation, useNavigate } from "react-router";
 import Planner from "./Planner";
 import { useEffect, useState } from 'react';
 import Home from "./Home";
@@ -8,9 +8,12 @@ import Account from "./Account";
 import { doGetRequestAuth } from "../helper/RequestHelper";
 import UserManagement from "./UserManagement";
 import { myToastInfo } from "../helper/ToastHelper";
-import { Layout, Avatar, Dropdown, theme } from 'antd';
-import MySider from "./MySider";
+import { Avatar, Dropdown, Layout, Skeleton, theme } from 'antd';
+import AppNav, { BOTTOM_NAV_HEIGHT, SIDER_WIDTH } from "./AppNav";
 import ChangePasswordModal from './ChangePasswordModal';
+import useIsMobile from "../hooks/useIsMobile";
+import { useColorSchemeSetting } from "../colorScheme";
+import { titleFor } from "../navigation";
 
 const { Header, Content } = Layout;
 
@@ -18,11 +21,15 @@ function App(props) {
   const [loggedPersNo, setLoggedPersNo] = useState();
   const [loggedFunctionNo, setLoggedFunctionNo] = useState();
   const [loggedInitials, setLoggedInitials] = useState();
-  const [collapsed, setCollapsed] = useState(true);
-  const [isChangePasswordModalVisible, setIsChangePasswordModalVisible] = useState(false); // State for modal visibility
+  const [isChangePasswordModalVisible, setIsChangePasswordModalVisible] = useState(false);
+
+  const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { preference, setPreference } = useColorSchemeSetting();
 
   const {
-    token: { colorBgContainer, borderRadiusLG },
+    token: { colorBgContainer, colorBgLayout, borderRadiusLG, colorBorderSecondary },
   } = theme.useToken();
 
   useEffect(() => {
@@ -36,8 +43,10 @@ function App(props) {
   }, []);
 
   const handleMenuClick = (e) => {
-    if (e.key === 'changePassword') {
-      setIsChangePasswordModalVisible(true); // Show modal
+    if (e.key === 'account') {
+      navigate('/account');
+    } else if (e.key === 'changePassword') {
+      setIsChangePasswordModalVisible(true);
     } else if (e.key === 'logout') {
       props.removeToken();
       myToastInfo('Logout erfolgreich');
@@ -45,63 +54,100 @@ function App(props) {
   };
 
   const menuItems = [
+    { key: 'account', label: 'Konto' },
+    { key: 'changePassword', label: 'Passwort ändern' },
     {
-      key: 'changePassword',
-      label: 'Passwort ändern',
-      onClick: handleMenuClick,
+      key: 'appearance',
+      label: 'Erscheinungsbild',
+      children: [
+        { key: 'system', label: 'Automatisch' },
+        { key: 'light', label: 'Hell' },
+        { key: 'dark', label: 'Dunkel' },
+      ].map((option) => ({
+        ...option,
+        // Die aktive Wahl wird hervorgehoben, damit man sie im Untermenü sieht.
+        label: preference === option.key ? `✓ ${option.label}` : option.label,
+        onClick: () => setPreference(option.key),
+      })),
     },
-    {
-      key: 'logout',
-      label: 'Logout',
-      danger: true,
-      onClick: handleMenuClick,
-    },
+    { type: 'divider' },
+    { key: 'logout', label: 'Abmelden', danger: true },
   ];
 
+  const routeProps = {
+    token: props.token,
+    loggedFunctionNo,
+    loggedPersNo,
+  };
+
   return (
-    <div>
+    <>
       {(loggedPersNo && loggedFunctionNo) ? (
-        <Layout style={{ minHeight: '100vh' }}>
-          <MySider loggedFunctionNo={loggedFunctionNo} collapsed={collapsed} setCollapsed={setCollapsed} />
-          <Layout style={{ marginLeft: collapsed ? 80 : 200 }}>
+        <Layout style={{ minHeight: '100dvh', background: colorBgLayout }}>
+          <AppNav loggedFunctionNo={loggedFunctionNo} />
+          <Layout
+            style={{
+              // Am Handy trägt die Bottom-Navigation, am PC weicht der Inhalt
+              // der Seitenleiste aus. Der Offset hängt jetzt an einer
+              // Konstante aus AppNav statt an einem lokalen State.
+              marginInlineStart: isMobile ? 0 : SIDER_WIDTH,
+              background: colorBgLayout,
+            }}
+          >
             <Header
               style={{
-                padding: 0,
+                position: 'sticky',
+                top: 0,
+                zIndex: 50,
+                padding: `var(--safe-top) 16px 0`,
+                height: 'auto',
                 background: colorBgContainer,
+                borderBottom: `1px solid ${colorBorderSecondary}`,
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                paddingLeft: '16px',
-                paddingRight: '16px',
+                gap: 12,
               }}
             >
-              <div style={{ fontWeight: 'bold' }}>FF Wemding</div>
-              <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-                <Avatar style={{ backgroundColor: '#87d068', cursor: 'pointer' }}>{loggedInitials}</Avatar>
+              {/* Am Handy steht hier der Seitentitel: ohne Seitenleiste ist er
+                  der einzige Hinweis darauf, wo man sich befindet. */}
+              <div style={{ fontWeight: 600, fontSize: 18, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {isMobile ? titleFor(location.pathname, loggedFunctionNo) : 'Atemschutzpflegestelle'}
+              </div>
+              <Dropdown menu={{ items: menuItems, onClick: handleMenuClick }} trigger={['click']} placement="bottomRight">
+                <Avatar style={{ cursor: 'pointer', flexShrink: 0 }}>{loggedInitials}</Avatar>
               </Dropdown>
             </Header>
             <Content
               style={{
-                margin: '24px 16px',
-                padding: 24,
+                margin: isMobile ? '12px 12px 0' : '24px auto',
+                padding: isMobile ? 16 : 24,
                 background: colorBgContainer,
                 borderRadius: borderRadiusLG,
+                // Platz für die Bottom-Navigation, damit das letzte Element
+                // nicht dahinter liegt.
+                marginBottom: isMobile ? `calc(${BOTTOM_NAV_HEIGHT}px + var(--safe-bottom) + 12px)` : 24,
+                maxWidth: isMobile ? undefined : 1200,
+                width: '100%',
+                boxSizing: 'border-box',
               }}
             >
               <Routes>
-                <Route path="/home" element={<Home token={props.token} loggedFunctionNo={loggedFunctionNo} loggedPersNo={loggedPersNo} />} />
-                <Route path="/planner/:editId?" element={<Planner token={props.token} loggedFunctionNo={loggedFunctionNo}  loggedPersNo={loggedPersNo} />} />
-                <Route path="/evaluation" element={<Evaluation token={props.token} loggedFunctionNo={loggedFunctionNo} />} />
-                <Route path="/userManagement" element={<UserManagement token={props.token} loggedFunctionNo={loggedFunctionNo} />} />
-                <Route path="/search" element={<Search token={props.token} loggedFunctionNo={loggedFunctionNo} loggedPersNo={loggedPersNo} />} />
-                <Route path="/account" element={<Account token={props.token} loggedFunctionNo={loggedFunctionNo} loggedPersNo={loggedPersNo} />} />
-                <Route path="/*" element={<Home token={props.token} loggedFunctionNo={loggedFunctionNo} loggedPersNo={loggedPersNo} />} />
+                <Route path="/home" element={<Home {...routeProps} />} />
+                <Route path="/planner/:editId?" element={<Planner {...routeProps} />} />
+                <Route path="/evaluation" element={<Evaluation {...routeProps} />} />
+                <Route path="/userManagement" element={<UserManagement {...routeProps} />} />
+                <Route path="/search" element={<Search {...routeProps} />} />
+                <Route path="/account" element={<Account {...routeProps} />} />
+                <Route path="/*" element={<Home {...routeProps} />} />
               </Routes>
             </Content>
           </Layout>
         </Layout>
       ) : (
-        <div>Daten werden geladen</div>
+        <div style={{ padding: 24 }}>
+          <Skeleton active paragraph={{ rows: 6 }} />
+        </div>
       )}
       <ChangePasswordModal
         visible={isChangePasswordModalVisible}
@@ -110,7 +156,7 @@ function App(props) {
         token={props.token}
         onClose={() => setIsChangePasswordModalVisible(false)}
       />
-    </div>
+    </>
   );
 }
 

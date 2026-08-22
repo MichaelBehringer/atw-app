@@ -316,7 +316,7 @@ function Planner(props) {
           <DatePicker locale={locale} format={dateFormat} value={txtDate} onChange={(e) => setTxtDate(e)} className="ffInputFull" />
         </Modal>
         {
-          editId ? <Divider orientation="left">#{editId}</Divider> : <></>
+          editId ? <Divider titlePlacement="left">#{editId}</Divider> : <></>
         }
         {!isExternal(props.loggedFunctionNo) ? <Row>
           <Col span={24}>
@@ -331,7 +331,7 @@ function Planner(props) {
 
         {inputFields.map((e) => (
           <React.Fragment key={e.divider}>
-            <Divider orientation="left">{e.divider}</Divider>
+            <Divider titlePlacement="left">{e.divider}</Divider>
             {e.content.map((c) => (
               <Row key={"r" + c.value.title}>
                 <Col key={"c1" + c.value.title} span={12}>
@@ -358,7 +358,7 @@ function Planner(props) {
         ))}
 
         {!isExternal(props.loggedFunctionNo) ? <div>
-          <Divider orientation="left">Arbeitszeit</Divider>
+          <Divider titlePlacement="left">Arbeitszeit</Divider>
           <Row>
             <Col span={12}>
               <InputNumber value={txtArbeitszeit} onChange={(e) => setTxtArbeitszeit(e)} min={0} max={10} decimalSeparator={","} className="ffInputFull" placeholder={"Arbeitszeit (h)"} />
@@ -376,7 +376,7 @@ function Planner(props) {
             </Col>
           </Row>
         </div> : <div>
-          <Divider orientation="left">Abschluss</Divider>
+          <Divider titlePlacement="left">Abschluss</Divider>
           <Row>
             <Col span={12}>
               <DatePicker disabled={editId} locale={locale} format={dateFormat} value={txtDate} onChange={(e) => setTxtDate(e)} className="ffInputFull" />
