@@ -160,28 +160,33 @@ Aus der Crontab (`sudo crontab -u root -e`):
 
 ## Sicherung
 
-`backup/backup.sh` erzeugt zwei Dinge in `backup/gitRepo` und committet sie in
-ein eigenes Repository:
+`backup/backup.sh` erzeugt zwei Dinge in `/root/zap-backup` und committet sie in
+das dortige Git-Repository:
 
 - `dump.sql` — vollständiger `mysqldump`, das ist die Grundlage zum
   Zurückspielen.
 - `csv/<tabelle>.csv` — je Tabelle eine Datei zum Lesen und Auswerten, etwa in
-  einer Tabellenkalkulation. Praktischer Nebeneffekt: im Git-Diff ist auf einen
-  Blick zu sehen, was sich seit der letzten Sicherung geändert hat.
+  einer Tabellenkalkulation, mit dem vollständigen Inhalt. Praktischer
+  Nebeneffekt: im Git-Diff ist auf einen Blick zu sehen, was sich seit der
+  letzten Sicherung geändert hat.
 
-Die Verbindung läuft **ohne Zugangsdaten** über den Unix-Socket: MariaDB
-erkennt den aufrufenden Systembenutzer (`root`) über das `unix_socket`-Plugin.
-Damit liegt nirgends ein Passwort und es braucht keine zusätzliche Berechtigung.
+Die Sicherung verbindet als MariaDB-Benutzer **`admin`**, das Passwort wird aus
+`ATW_DB_DSN` in der `.env` gelesen. Es steht damit nur an einer Stelle und
+wird über eine temporäre Optionsdatei übergeben, nicht über die Kommandozeile —
+Argumente wären in `ps` für alle Nutzer des Systems sichtbar.
 
-Der Anwendungsbenutzer taugt hier nicht. Der ist für den Zugriff aus dem
-Container eingerichtet (`'ffwadmin'@'172.%'`); das Backup läuft auf dem Host,
+Der Anwendungsbenutzer taugt hier nicht: dessen Berechtigung gilt für den
+Zugriff aus dem Container (`'ffwadmin'@'172.%'`). Das Backup läuft auf dem Host,
 von dort sieht MariaDB die Verbindung als `localhost` und lehnt sie ab —
 `Access denied for user 'ffwadmin'@'localhost'`.
 
-Sollte `unix_socket` nicht verfügbar sein, lassen sich in der `.env`
-`ATW_BACKUP_DB_USER` und `ATW_BACKUP_DB_PASSWORD` setzen. Das Passwort wird dann
-über eine temporäre Optionsdatei übergeben, nicht über die Kommandozeile —
-Argumente wären in `ps` für alle Nutzer des Systems sichtbar.
+Hat `admin` ein anderes Passwort als der Anwendungsbenutzer, lässt sich beides
+in der `.env` überschreiben:
+
+```
+ATW_BACKUP_DB_USER=admin
+ATW_BACKUP_DB_PASSWORD=…
+```
 
 ### Meldung, wenn es schiefgeht
 
@@ -203,7 +208,7 @@ wurde, ist eine Vermutung:
 ```bash
 # In eine Testdatenbank, nicht über den Bestand
 sudo mariadb -e "CREATE DATABASE ffw_test"
-sudo mariadb ffw_test < /root/atw-app/backup/gitRepo/dump.sql
+sudo mariadb ffw_test < /root/zap-backup/dump.sql
 
 # Gegenprobe: gleiche Zeilenzahl wie im Original?
 sudo mariadb -e "SELECT COUNT(*) FROM ffw.atemschutzpflegestelle_data"
@@ -215,7 +220,7 @@ sudo mariadb -e "DROP DATABASE ffw_test"
 Im Ernstfall auf den Bestand, mit einem älteren Stand aus der Historie:
 
 ```bash
-cd /root/atw-app/backup/gitRepo
+cd /root/zap-backup
 git log --oneline                 # gewünschten Stand suchen
 git show <commit>:dump.sql > /tmp/wiederherstellung.sql
 docker compose -f /root/atw-app/docker-compose.yml stop server
@@ -230,13 +235,14 @@ docker compose -f /root/atw-app/docker-compose.yml start server
 - **Aufbewahrung:** die Git-Historie, also unbegrenzt. Alte Stände lassen sich
   nicht löschen, das Repository wächst dauerhaft.
 - **Datenverlust im Ernstfall:** bis zu 8 Stunden.
-- **Personenbezogene Daten:** `dump.sql` enthält Namen und — solange die
+- **Personenbezogene Daten:** Dump und CSV enthalten Namen und — solange die
   Passwörter nicht gehasht sind — die Passwörter im Klartext. Beides liegt damit
-  dauerhaft und praktisch unlöschbar beim Anbieter des Git-Remotes. Die
-  CSV-Dateien lassen die Passwortspalte aus (`AUSGESCHLOSSEN` in
-  `backup/export_csv.py`), der Dump kann das nicht, weil er sonst zum
-  Zurückspielen unbrauchbar wäre. Der wirksame Hebel ist, die Passwörter zu
-  hashen; danach ist diese Sicherung unbedenklich.
+  dauerhaft und praktisch unlöschbar beim Anbieter des Git-Remotes. Das ist eine
+  bewusste Entscheidung; der wirksame Hebel dagegen ist nicht das Backup,
+  sondern die Passwörter zu hashen. Soll eine Spalte doch aus den CSVs
+  herausbleiben, geht das über `AUSGESCHLOSSEN` in `backup/export_csv.py` — der
+  Dump kann sie nicht auslassen, weil er sonst zum Zurückspielen unbrauchbar
+  wäre.
 
 ## Entwicklung
 

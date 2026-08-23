@@ -19,12 +19,13 @@ import shutil
 import subprocess
 import sys
 
-# Spalten, die nicht in die CSV-Dateien gehoeren. Der SQL-Dump enthaelt sie
-# weiterhin - ohne ihn liesse sich die Datenbank nicht zurueckspielen.
-# Die CSVs sind zum Lesen und Auswerten gedacht, dafuer braucht es sie nicht.
-AUSGESCHLOSSEN = {
-    ('pers', 'PASSWORD'),
-}
+# Spalten, die nicht in die CSV-Dateien gehoeren, als (Tabelle, Spalte).
+#
+# Bewusst leer: die CSVs geben den vollstaendigen Inhalt wieder, damit sie zum
+# SQL-Dump passen und beim Nachschauen nichts fehlt. Soll eine Spalte doch
+# ausgelassen werden, hier eintragen - der Dump enthaelt sie weiterhin, sonst
+# liesse sich die Datenbank nicht zurueckspielen.
+AUSGESCHLOSSEN = set()
 
 
 def mysql_befehl():

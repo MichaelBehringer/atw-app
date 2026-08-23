@@ -9,9 +9,15 @@
 # nicht still abbrechen. Fehler laufen über die Funktion abbruch().
 
 APP_DIR=/root/atw-app
-REPO_DIR="$APP_DIR/backup/gitRepo"
+REPO_DIR=/root/zap-backup
 CSV_DIR="$REPO_DIR/csv"
 ENV_DATEI="$APP_DIR/.env"
+
+# Der Datenbankbenutzer für die Sicherung. Bewusst nicht der Benutzer der
+# Anwendung: dessen Berechtigung gilt für den Zugriff aus dem Container
+# ('ffwadmin'@'172.%'), und von hier aus - vom Host - sieht MariaDB die
+# Verbindung als 'localhost' und lehnt sie ab.
+DB_USER_STANDARD=admin
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
@@ -40,38 +46,37 @@ abbruch() {
 }
 
 # --- Datenbank und Zugang ---------------------------------------------------
-# Der Name der Datenbank kommt aus der .env, damit er nur an einer Stelle steht.
+# Name der Datenbank und Passwort kommen aus der .env, damit sie nur an einer
+# Stelle stehen.
 DSN="$(wert_aus_env ATW_DB_DSN)"
 [ -n "$DSN" ] || abbruch "ATW_DB_DSN fehlt in $ENV_DATEI"
 
+# ffwadmin:passwort@tcp(host:3306)/ffw
+ZUGANG="${DSN%@*}"          # alles vor dem letzten @
+DB_PASS="${ZUGANG#*:}"      # ab dem ersten :
 DB_NAME="${DSN##*/}"        # nach dem letzten /
 DB_NAME="${DB_NAME%%\?*}"   # etwaige ?parameter abschneiden
 [ -n "$DB_NAME" ] || abbruch "Datenbankname nicht aus ATW_DB_DSN zu lesen"
 
-# Verbindung bewusst OHNE Zugangsdaten und OHNE host-Angabe.
-#
-# Damit läuft es über den Unix-Socket, und MariaDB erkennt den aufrufenden
-# Systembenutzer (root) über das unix_socket-Plugin. Zwei Vorteile: es liegt
-# nirgends ein Passwort, und es braucht keine zusätzliche Berechtigung.
-#
-# Der Anwendungsbenutzer taugt hier nicht: der ist für den Zugriff aus dem
-# Container eingerichtet ('ffwadmin'@'172.%'). Das Backup läuft auf dem Host,
-# von dort sieht MariaDB die Verbindung als 'localhost' - und lehnt sie ab.
-#
-# Nur falls unix_socket nicht verfügbar ist, können in der .env
-# ATW_BACKUP_DB_USER und ATW_BACKUP_DB_PASSWORD gesetzt werden. Dann wird das
-# Passwort über eine Datei übergeben, nicht über die Kommandozeile - Argumente
-# sind in "ps" für alle Nutzer des Systems sichtbar.
+# Beides über die .env überschreibbar - etwa wenn der Benutzer für die
+# Sicherung ein anderes Passwort hat als der der Anwendung.
+DB_USER="$(wert_aus_env ATW_BACKUP_DB_USER)"
+[ -n "$DB_USER" ] || DB_USER="$DB_USER_STANDARD"
+BACKUP_PASS="$(wert_aus_env ATW_BACKUP_DB_PASSWORD)"
+[ -n "$BACKUP_PASS" ] && DB_PASS="$BACKUP_PASS"
+
+[ -n "$DB_PASS" ] || abbruch "kein Passwort ermittelt - ATW_DB_DSN prüfen"
+
+# Passwort über eine Datei statt über die Kommandozeile: Argumente sind in
+# "ps" für alle Nutzer des Systems sichtbar. Keine host-Angabe, damit die
+# Verbindung über den Unix-Socket läuft.
 DEFAULTS="$TMP_DIR/my.cnf"
 umask 077
-printf '[client]\n' > "$DEFAULTS"
-
-BACKUP_USER="$(wert_aus_env ATW_BACKUP_DB_USER)"
-if [ -n "$BACKUP_USER" ]; then
-	printf 'user=%s\n' "$BACKUP_USER" >> "$DEFAULTS"
-	BACKUP_PASS="$(wert_aus_env ATW_BACKUP_DB_PASSWORD)"
-	[ -n "$BACKUP_PASS" ] && printf 'password=%s\n' "$BACKUP_PASS" >> "$DEFAULTS"
-fi
+cat > "$DEFAULTS" <<EOF
+[client]
+user=$DB_USER
+password=$DB_PASS
+EOF
 
 # --- SQL-Dump ---------------------------------------------------------------
 # --single-transaction: ohne das ist der Dump bei InnoDB nicht konsistent, wenn
