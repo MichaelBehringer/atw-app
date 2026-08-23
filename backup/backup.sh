@@ -13,11 +13,22 @@ REPO_DIR=/root/zap-backup
 CSV_DIR="$REPO_DIR/csv"
 ENV_DATEI="$APP_DIR/.env"
 
-# Der Datenbankbenutzer für die Sicherung. Bewusst nicht der Benutzer der
-# Anwendung: dessen Berechtigung gilt für den Zugriff aus dem Container
-# ('ffwadmin'@'172.%'), und von hier aus - vom Host - sieht MariaDB die
-# Verbindung als 'localhost' und lehnt sie ab.
-DB_USER_STANDARD=admin
+# Datenbankbenutzer für die Sicherung.
+#
+# Leer bedeutet: ohne Benutzernamen und ohne Passwort verbinden. Der Client
+# nimmt dann den Namen des aufrufenden Systembenutzers (im Cronjob also root)
+# und MariaDB prüft ihn über das unix_socket-Plugin. Das ist derselbe Weg, über
+# den "sudo mariadb" ohne Passwort funktioniert.
+#
+# Warum nicht 'admin' mit Passwort: dieses Konto ist auf dieser Maschine
+# ebenfalls über unix_socket eingerichtet. Es prüft kein Passwort, sondern den
+# Namen des Systembenutzers - der müsste dafür 'admin' heißen. Aus einem
+# root-Cronjob ist das Konto damit nicht erreichbar; der Versuch endet in
+# MariaDB-Fehler 1698.
+#
+# Ist ein Konto vorhanden, das wirklich per Passwort prüft, kann es über
+# ATW_BACKUP_DB_USER in der .env gesetzt werden.
+DB_USER_STANDARD=
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
@@ -58,25 +69,22 @@ DB_NAME="${DSN##*/}"        # nach dem letzten /
 DB_NAME="${DB_NAME%%\?*}"   # etwaige ?parameter abschneiden
 [ -n "$DB_NAME" ] || abbruch "Datenbankname nicht aus ATW_DB_DSN zu lesen"
 
-# Beides über die .env überschreibbar - etwa wenn der Benutzer für die
-# Sicherung ein anderes Passwort hat als der der Anwendung.
 DB_USER="$(wert_aus_env ATW_BACKUP_DB_USER)"
 [ -n "$DB_USER" ] || DB_USER="$DB_USER_STANDARD"
 BACKUP_PASS="$(wert_aus_env ATW_BACKUP_DB_PASSWORD)"
 [ -n "$BACKUP_PASS" ] && DB_PASS="$BACKUP_PASS"
 
-[ -n "$DB_PASS" ] || abbruch "kein Passwort ermittelt - ATW_DB_DSN prüfen"
-
-# Passwort über eine Datei statt über die Kommandozeile: Argumente sind in
-# "ps" für alle Nutzer des Systems sichtbar. Keine host-Angabe, damit die
-# Verbindung über den Unix-Socket läuft.
+# Keine host-Angabe: damit läuft die Verbindung über den Unix-Socket, was für
+# beide Wege nötig ist. Das Passwort geht über eine Datei und nicht über die
+# Kommandozeile - Argumente sind in "ps" für alle Nutzer des Systems sichtbar.
 DEFAULTS="$TMP_DIR/my.cnf"
 umask 077
-cat > "$DEFAULTS" <<EOF
-[client]
-user=$DB_USER
-password=$DB_PASS
-EOF
+printf '[client]\n' > "$DEFAULTS"
+if [ -n "$DB_USER" ]; then
+	printf 'user=%s\n' "$DB_USER" >> "$DEFAULTS"
+	[ -n "$DB_PASS" ] || abbruch "für Benutzer $DB_USER kein Passwort ermittelt"
+	printf 'password=%s\n' "$DB_PASS" >> "$DEFAULTS"
+fi
 
 # --- SQL-Dump ---------------------------------------------------------------
 # --single-transaction: ohne das ist der Dump bei InnoDB nicht konsistent, wenn

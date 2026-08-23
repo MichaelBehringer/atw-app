@@ -170,23 +170,37 @@ das dortige Git-Repository:
   Nebeneffekt: im Git-Diff ist auf einen Blick zu sehen, was sich seit der
   letzten Sicherung geändert hat.
 
-Die Sicherung verbindet als MariaDB-Benutzer **`admin`**, das Passwort wird aus
-`ATW_DB_DSN` in der `.env` gelesen. Es steht damit nur an einer Stelle und
-wird über eine temporäre Optionsdatei übergeben, nicht über die Kommandozeile —
-Argumente wären in `ps` für alle Nutzer des Systems sichtbar.
+Die Sicherung verbindet **ohne Benutzernamen und ohne Passwort** über den
+Unix-Socket. Der Client nimmt dann den Namen des aufrufenden Systembenutzers —
+im Cronjob also `root` — und MariaDB prüft ihn über das `unix_socket`-Plugin.
+Das ist derselbe Weg, über den `sudo mariadb` ohne Passwort funktioniert.
 
-Der Anwendungsbenutzer taugt hier nicht: dessen Berechtigung gilt für den
-Zugriff aus dem Container (`'ffwadmin'@'172.%'`). Das Backup läuft auf dem Host,
-von dort sieht MariaDB die Verbindung als `localhost` und lehnt sie ab —
-`Access denied for user 'ffwadmin'@'localhost'`.
+Zwei Wege scheitern hier, beide mit einer eigenen Fehlermeldung:
 
-Hat `admin` ein anderes Passwort als der Anwendungsbenutzer, lässt sich beides
-in der `.env` überschreiben:
+| Versuch | Fehler | Grund |
+|---|---|---|
+| Anwendungsbenutzer `ffwadmin` mit Passwort | **1045** `'ffwadmin'@'localhost'` | dessen Berechtigung gilt für den Zugriff aus dem Container (`'ffwadmin'@'172.%'`); vom Host sieht MariaDB `localhost` |
+| `admin` mit Passwort | **1698** `'admin'@'localhost'` | dieses Konto nutzt ebenfalls `unix_socket`. Es prüft kein Passwort, sondern den Namen des Systembenutzers — der müsste `admin` heißen |
+
+Der Unterschied zwischen 1045 und 1698 ist die Diagnose: 1045 heißt „Passwort
+falsch oder Konto fehlt", 1698 heißt „Konto verlangt `unix_socket`, und die
+Identität passt nicht". Bei 1698 fehlt auch der Zusatz `(using password: YES)`.
+
+Welche Konten es gibt und wie sie prüfen:
+
+```bash
+sudo mariadb -e "SELECT user, host, plugin FROM mysql.user ORDER BY user"
+```
+
+Steht dort ein Konto, das wirklich per Passwort prüft (`plugin` ist
+`mysql_native_password` oder leer), kann es in der `.env` gesetzt werden:
 
 ```
-ATW_BACKUP_DB_USER=admin
+ATW_BACKUP_DB_USER=…
 ATW_BACKUP_DB_PASSWORD=…
 ```
+
+Ohne diese Angaben bleibt es beim Socket-Weg.
 
 ### Meldung, wenn es schiefgeht
 
