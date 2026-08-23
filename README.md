@@ -169,9 +169,19 @@ ein eigenes Repository:
   einer Tabellenkalkulation. Praktischer Nebeneffekt: im Git-Diff ist auf einen
   Blick zu sehen, was sich seit der letzten Sicherung geändert hat.
 
-Die Zugangsdaten kommen aus `.env`, nicht aus dem Skript, und werden über eine
-temporäre Optionsdatei übergeben — Kommandozeilenargumente wären in `ps` für
-alle Nutzer des Systems sichtbar.
+Die Verbindung läuft **ohne Zugangsdaten** über den Unix-Socket: MariaDB
+erkennt den aufrufenden Systembenutzer (`root`) über das `unix_socket`-Plugin.
+Damit liegt nirgends ein Passwort und es braucht keine zusätzliche Berechtigung.
+
+Der Anwendungsbenutzer taugt hier nicht. Der ist für den Zugriff aus dem
+Container eingerichtet (`'ffwadmin'@'172.%'`); das Backup läuft auf dem Host,
+von dort sieht MariaDB die Verbindung als `localhost` und lehnt sie ab —
+`Access denied for user 'ffwadmin'@'localhost'`.
+
+Sollte `unix_socket` nicht verfügbar sein, lassen sich in der `.env`
+`ATW_BACKUP_DB_USER` und `ATW_BACKUP_DB_PASSWORD` setzen. Das Passwort wird dann
+über eine temporäre Optionsdatei übergeben, nicht über die Kommandozeile —
+Argumente wären in `ps` für alle Nutzer des Systems sichtbar.
 
 ### Meldung, wenn es schiefgeht
 

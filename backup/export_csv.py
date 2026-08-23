@@ -41,11 +41,13 @@ def frage(client, defaults_datei, datenbank, sql):
     Ohne --raw maskiert der Client Tabulatoren, Zeilenumbrueche und
     Backslashes. Genau das brauchen wir, um die Zeilen sicher zu zerlegen.
     """
-    ergebnis = subprocess.run(
-        [client, f'--defaults-extra-file={defaults_datei}', '--batch', datenbank, '-e', sql],
-        capture_output=True,
-        text=True,
-    )
+    befehl = [client]
+    if defaults_datei:
+        # Muss vor allen anderen Optionen stehen.
+        befehl.append(f'--defaults-extra-file={defaults_datei}')
+    befehl += ['--batch', datenbank, '-e', sql]
+
+    ergebnis = subprocess.run(befehl, capture_output=True, text=True)
     if ergebnis.returncode != 0:
         raise RuntimeError(f'{sql!r} fehlgeschlagen: {ergebnis.stderr.strip()}')
     return ergebnis.stdout
@@ -124,7 +126,9 @@ def exportiere(client, defaults, datenbank, tabelle, ziel_verzeichnis):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--defaults-extra-file', required=True)
+    # Optional: ohne Angabe verbindet der Client als aufrufender
+    # Systembenutzer über den Unix-Socket.
+    parser.add_argument('--defaults-extra-file', default='')
     parser.add_argument('--database', required=True)
     parser.add_argument('--out', required=True)
     args = parser.parse_args()
