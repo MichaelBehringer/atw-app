@@ -127,7 +127,7 @@ if git -C "$REPO_DIR" diff --cached --quiet; then
 	exit 0
 fi
 
-if ! git -C "$REPO_DIR" commit -q -m "Sicherung $(date '+%Y-%m-%d %H:%M')"; then
+if ! git -C "$REPO_DIR" commit -q -m "Sicherung atw $(date '+%Y-%m-%d %H:%M')"; then
 	abbruch "git commit"
 fi
 
