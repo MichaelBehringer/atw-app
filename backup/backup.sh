@@ -9,7 +9,7 @@
 # nicht still abbrechen. Fehler laufen über die Funktion abbruch().
 
 APP_DIR=/root/atw-app
-REPO_DIR=/root/zap-backup
+REPO_DIR=/root/zap-backup/atw
 CSV_DIR="$REPO_DIR/csv"
 ENV_DATEI="$APP_DIR/.env"
 
