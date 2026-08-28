@@ -46,9 +46,17 @@ def frage(client, defaults_datei, datenbank, sql):
     if defaults_datei:
         # Muss vor allen anderen Optionen stehen.
         befehl.append(f'--defaults-extra-file={defaults_datei}')
-    befehl += ['--batch', datenbank, '-e', sql]
+    # Zeichensatz ausdruecklich, wie beim mysqldump in backup.sh: sonst
+    # entscheidet die Voreinstellung des Clients, in welcher Kodierung er
+    # ausgibt - und die passt nicht zwangslaeufig zu utf8mb4.
+    befehl += ['--default-character-set=utf8mb4', '--batch', datenbank, '-e', sql]
 
-    ergebnis = subprocess.run(befehl, capture_output=True, text=True)
+    # encoding ausdruecklich: mit text=True allein nimmt Python die Kodierung
+    # der Umgebung. Was der Client schickt, haengt aber nicht von der Umgebung
+    # ab, sondern von der Zeile darueber.
+    ergebnis = subprocess.run(
+        befehl, capture_output=True, text=True, encoding='utf-8'
+    )
     if ergebnis.returncode != 0:
         raise RuntimeError(f'{sql!r} fehlgeschlagen: {ergebnis.stderr.strip()}')
     return ergebnis.stdout
