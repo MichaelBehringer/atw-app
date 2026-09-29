@@ -97,18 +97,30 @@ describe('Search', () => {
     expect(params.bemerkung).toBe('Alles in Ordnung')
   })
 
-  it('übernimmt Änderungen an einer Arbeitsart', async () => {
+  it('lässt die Anzahl nur über die Gerätenummern ändern', async () => {
     const user = userEvent.setup()
     renderSearch()
 
     await user.click(await screen.findByRole('button', { name: 'Bearbeiten' }))
 
-    const feld = await screen.findByRole('spinbutton', { name: 'Geräte prüfen' })
-    await user.clear(feld)
-    await user.type(feld, '5')
-    await user.click(screen.getByRole('button', { name: 'Speichern' }))
+    // Die Anzahl ist gesperrt - sonst passt sie nicht mehr zur Nummernliste.
+    expect(await screen.findByRole('spinbutton', { name: 'Geräte prüfen' })).toBeDisabled()
 
-    expect(letzteAenderung().geraetePruefen).toBe(5)
+    await user.click(screen.getByRole('button', { name: 'Gerätenummern bearbeiten' }))
+    expect(window.location.hash).toBe('#/planner/501')
+  })
+
+  it('beendet den Ladezustand, wenn der Benutzer nicht in der Liste ist', async () => {
+    render(
+      <AppProviders>
+        <HashRouter>
+          <Search token="t" loggedPersNo={99} loggedFunctionNo={ADMIN} />
+        </HashRouter>
+      </AppProviders>,
+    )
+
+    expect(await screen.findByText('Keine Einträge gefunden')).toBeInTheDocument()
+    expect(postAuth).not.toHaveBeenCalledWith('search', expect.anything(), expect.anything())
   })
 
   it('verlangt vor dem Löschen eine Bestätigung', async () => {

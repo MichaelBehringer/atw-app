@@ -1,5 +1,5 @@
 import { Button, Drawer, theme } from 'antd'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import useCloseOnBack from '../hooks/useCloseOnBack'
 import useIsMobile from '../hooks/useIsMobile'
 
@@ -23,18 +23,27 @@ export default function NummernPicker({
   const { token } = theme.useToken()
   const isMobile = useIsMobile()
   const [selected, setSelected] = useState([])
+  // Übernehmen liest die Auswahl hierüber statt aus der Closure. Der Footer des
+  // Drawers wurde mitunter mit einem alten Stand gerendert - wer schnell
+  // hintereinander tippte und übernahm, verlor die zuletzt getippte Nummer.
+  const selectedRef = useRef([])
+  function waehle(list) {
+    selectedRef.current = list
+    setSelected(list)
+  }
   useCloseOnBack(open, onClose)
 
   // Beim Öffnen den aktuellen Stand übernehmen, damit Abbrechen wirklich
   // nichts verändert.
   useEffect(() => {
-    if (open) setSelected(value.map(Number))
+    if (open) waehle(value.map(Number))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   function toggle(nr) {
     if (readOnly) return
-    setSelected((prev) => (prev.includes(nr) ? prev.filter((n) => n !== nr) : [...prev, nr]))
+    const prev = selectedRef.current
+    waehle(prev.includes(nr) ? prev.filter((n) => n !== nr) : [...prev, nr])
   }
 
   const sortiert = [...selected].sort((a, b) => a - b)
@@ -63,7 +72,7 @@ export default function NummernPicker({
                 type="primary"
                 size="large"
                 style={{ flex: 2 }}
-                onClick={() => onSubmit(sortiert.map(String))}
+                onClick={() => onSubmit([...selectedRef.current].sort((a, b) => a - b).map(String))}
               >
                 Übernehmen
               </Button>

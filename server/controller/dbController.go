@@ -82,7 +82,17 @@ func ExecuteSQLRow(statement string, params ...interface{}) *sql.Row {
 	return db.QueryRow(statement, params...)
 }
 
+// ExecuteDDL fuehrt eine schreibende Anweisung aus. Fehler landen nur im Log -
+// vorher wurden sie ganz verworfen, und ein falsches Statement fiel niemandem
+// auf. Wer den Fehler an den Aufrufer melden will, nimmt ExecuteDDLErr.
 func ExecuteDDL(statement string, params ...interface{}) sql.Result {
-	result, _ := db.Exec(statement, params...)
+	result, execErr := ExecuteDDLErr(statement, params...)
+	if execErr != nil {
+		log.Printf("SQL-Fehler: %v", execErr)
+	}
 	return result
+}
+
+func ExecuteDDLErr(statement string, params ...interface{}) (sql.Result, error) {
+	return db.Exec(statement, params...)
 }

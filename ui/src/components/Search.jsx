@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import { Button, Card, Drawer, Empty, Form, Input, InputNumber, Popconfirm, Select, Skeleton, Space, Table, Tag, theme } from 'antd';
 import { myToastError, myToastSuccess } from "../helper/ToastHelper";
 import { doDeleteRequestAuth, doGetRequestAuth, doPostRequestAuth } from "../helper/RequestHelper";
@@ -33,6 +34,7 @@ function Search(props) {
   const [saving, setSaving] = useState(false);
 
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const { token } = theme.useToken();
   const darfBearbeiten = isAdmin(props.loggedFunctionNo);
   useCloseOnBack(Boolean(entwurf), () => setEntwurf(undefined));
@@ -43,7 +45,13 @@ function Search(props) {
   );
 
   function doSearch(persNo) {
-    if (!persNo) return Promise.resolve();
+    // Ohne Gerätewart gibt es nichts zu laden - aber das Skeleton muss weg,
+    // sonst bleibt die Seite für immer im Ladezustand.
+    if (!persNo) {
+      setDataSource([]);
+      setLoading(false);
+      return Promise.resolve();
+    }
     setLoading(true);
     return doPostRequestAuth("search", { persNo }, props.token)
       .then((res) => setDataSource(res.data ?? []))
@@ -54,12 +62,18 @@ function Search(props) {
   useEffect(() => {
     doGetRequestAuth("pers", props.token)
       .then((res) => setUsers(res.data ?? []))
-      .catch(() => myToastError("Gerätewarte konnten nicht geladen werden."));
+      .catch(() => {
+        myToastError("Gerätewarte konnten nicht geladen werden.");
+        setLoading(false);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (users.length === 0) return;
+    if (users.length === 0) {
+      setLoading(false);
+      return;
+    }
     const me = getUserToID(props.loggedPersNo, users);
     setSelectedUser(me?.persNo);
     doSearch(me?.persNo);
@@ -239,6 +253,15 @@ function Search(props) {
               </Form.Item>
             </Space>
 
+            {/* Die Anzahl ergibt sich aus den Gerätenummern. Hier nur anzeigen -
+                wer sie hier änderte, brachte Anzahl und Nummernliste in der
+                Datenbank auseinander. Geändert wird im Planner. */}
+            {entwurf.city && (
+              <Button block style={{ marginBottom: 16 }} onClick={() => navigate(`/planner/${entwurf.key}`)}>
+                Gerätenummern bearbeiten
+              </Button>
+            )}
+
             {/* Ein Feld pro Zeile mit Label darüber. Vorher fraß das addonBefore
                 bei 358px Modalbreite über die Hälfte und ließ dem Zahlenfeld
                 rund 80px. */}
@@ -247,11 +270,7 @@ function Search(props) {
                 <InputNumber
                   aria-label={type.label}
                   value={entwurf[type.searchField]}
-                  onChange={(v) => setEntwurf({ ...entwurf, [type.searchField]: v })}
-                  precision={0}
-                  min={0}
-                  max={10}
-                  inputMode="numeric"
+                  disabled
                   style={{ width: '100%' }}
                 />
               </Form.Item>

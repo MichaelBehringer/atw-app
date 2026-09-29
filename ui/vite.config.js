@@ -88,5 +88,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/setupTests.js',
+    // Die Planner-Tests klicken sich durch mehrere antd-Drawer. Parallel mit
+    // allen anderen Dateien dauert das mitunter laenger als die 5s Vorgabe.
+    testTimeout: 20000,
   },
 })

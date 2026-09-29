@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { HashRouter } from 'react-router'
 import AppProviders from '../AppProviders'
@@ -200,5 +200,27 @@ describe('Planner', () => {
     expect(
       await screen.findByText('Bitte Atemschutzgerätewart und Feuerwehr wählen'),
     ).toBeInTheDocument()
+  })
+
+  it('hält die Sonderaufgabe vom Hauptformular getrennt', async () => {
+    const user = userEvent.setup()
+    renderPlanner()
+
+    const haupt = await screen.findByRole('spinbutton', { name: 'Arbeitszeit' })
+    await user.type(haupt, '2')
+
+    await user.click(screen.getByRole('button', { name: 'Sonstige Aufgabe' }))
+    const extra = await screen.findByRole('spinbutton', { name: 'Arbeitszeit der Sonderaufgabe' })
+    // Die Stunden des Hauptformulars wandern nicht ins Modal.
+    expect(extra).toHaveValue('')
+    await user.type(extra, '1')
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Speichern' }))
+
+    const [path, params] = letzterAufruf()
+    expect(path).toBe('createExtraEntry')
+    expect(params.arbeitszeit).toBe(1)
+    expect(params.user).toBe(7)
+    // Und das Speichern im Modal leert das Hauptformular nicht.
+    expect(screen.getByRole('spinbutton', { name: 'Arbeitszeit' })).toHaveValue('2,0')
   })
 })

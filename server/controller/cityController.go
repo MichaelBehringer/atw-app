@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"strings"
+
 	. "ffAPI/models"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -94,11 +96,20 @@ func DeleteCity(city City) {
 	ExecuteDDL("UPDATE atemschutzpflegestelle_cities SET IS_ACTIVE = 0 where CITY_NO = ?", city.CityNo)
 }
 
-func CreateCity(city City) bool {
-	var doesExist bool
-	if doesExist {
-		return false
+// CreateCity liefert false bei leerem oder schon vergebenem Namen. Die
+// Pruefung auf Duplikate stand vorher nur da, fragte aber nie die Datenbank.
+func CreateCity(city City) (bool, error) {
+	name := strings.TrimSpace(city.Name)
+	if name == "" {
+		return false, nil
 	}
-	ExecuteDDL("INSERT INTO atemschutzpflegestelle_cities (CITY_NAME, IS_ACTIVE) VALUES(?, 1)", city.Name)
-	return true
+	var treffer int
+	if scanErr := ExecuteSQLRow("SELECT COUNT(*) FROM atemschutzpflegestelle_cities WHERE UPPER(CITY_NAME)=UPPER(?) AND IS_ACTIVE=1", name).Scan(&treffer); scanErr != nil {
+		return false, scanErr
+	}
+	if treffer > 0 {
+		return false, nil
+	}
+	_, execErr := ExecuteDDLErr("INSERT INTO atemschutzpflegestelle_cities (CITY_NAME, IS_ACTIVE) VALUES(?, 1)", name)
+	return execErr == nil, execErr
 }

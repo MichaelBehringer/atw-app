@@ -4,7 +4,10 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import AppProviders from '../AppProviders'
 
-const USERS = [{ persNo: 7, firstname: 'Max', lastname: 'Muster', cityNo: 2 }]
+const USERS = [
+  { persNo: 7, firstname: 'Max', lastname: 'Muster', cityNo: 2 },
+  { persNo: 9, firstname: 'Eva', lastname: 'Beispiel', cityNo: 1 },
+]
 const CITIES = [
   { cityNo: 1, name: 'Wemding' },
   { cityNo: 2, name: 'Amerbach' },
@@ -16,6 +19,8 @@ const CITIES = [
 const ENTRY = {
   dataNo: 142,
   city: 2,
+  user: 9,
+  bemerkung: 'Ventil getauscht',
   dateWork: '20.05.2024',
   arbeitszeit: 1.5,
   flaschenFuellenNr: '12,15,22',
@@ -114,9 +119,15 @@ describe('Planner im Bearbeiten-Modus', () => {
 
     const [path, params] = putAuth.mock.calls.at(-1)
     expect(path).toBe('saveEntry')
-    expect(params.editId).toBe('142')
+    // Das Backend liest die Nummer aus dataNo. Vorher ging nur editId mit,
+    // das UPDATE lief ins Leere und nichts wurde gespeichert.
+    expect(params.dataNo).toBe(142)
     expect(params.flaschenFuellenNr).toBe('12,15,22')
     expect(params.flaschenFuellen).toBe(3)
     expect(params.dateWork).toBe('2024-05-20')
+    // Gerätewart und Bemerkung des Eintrags bleiben erhalten, statt vom
+    // angemeldeten Benutzer bzw. einem leeren Text überschrieben zu werden.
+    expect(params.user).toBe(9)
+    expect(params.bemerkung).toBe('Ventil getauscht')
   })
 })

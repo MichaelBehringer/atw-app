@@ -127,8 +127,19 @@ function Planner(props) {
   const [datum, setDatum] = useState(dayjs());
   const [saving, setSaving] = useState(false);
 
+  // Beim Bearbeiten die vorhandene Bemerkung behalten - saveEntry schreibt
+  // sie sonst leer zurück.
+  const [bemerkung, setBemerkung] = useState('');
+
+  // Die Sonderaufgabe hat eigene Felder. Vorher teilte sie Arbeitszeit, Datum
+  // und Gerätewart mit dem Hauptformular: Eingaben wanderten ins Modal, und
+  // Speichern im Modal leerte das Hauptformular.
   const [extraOpen, setExtraOpen] = useState(false);
   const [extraNotice, setExtraNotice] = useState('Monatliche Kurzprüfung');
+  const [extraUser, setExtraUser] = useState();
+  const [extraArbeitszeit, setExtraArbeitszeit] = useState();
+  const [extraDatum, setExtraDatum] = useState(dayjs());
+  const [extraSaving, setExtraSaving] = useState(false);
 
   // Zurueck-Geste schliesst das offene Overlay statt die App.
   useCloseOnBack(picker !== null, () => setPicker(null));
@@ -157,7 +168,8 @@ function Planner(props) {
   useEffect(() => {
     if (users.length === 0) return;
     const me = getUserToID(props.loggedPersNo, users);
-    setSelectedUser(me?.persNo);
+    // Beim Bearbeiten kommt der Gerätewart aus dem Eintrag selbst.
+    if (!editId) setSelectedUser(me?.persNo);
     if (readOnlyExtern && cities.length > 0 && me) {
       setSelectedCity(getCityToID(me.cityNo, cities)?.cityNo);
     }
@@ -170,6 +182,8 @@ function Planner(props) {
     doGetRequestAuth('entry/' + editId, props.token).then((res) => {
       const entry = res.data;
       setSelectedCity(entry.city);
+      if (entry.user) setSelectedUser(entry.user);
+      setBemerkung(entry.bemerkung ?? '');
       setArbeitszeit(entry.arbeitszeit);
       setDatum(entry.dateWork ? dayjs(entry.dateWork, DATE_FORMAT) : dayjs());
       setNumbers(
@@ -214,7 +228,8 @@ function Planner(props) {
       ...buildWorkPayload(numbers),
       arbeitszeit: readOnlyExtern ? 0 : arbeitszeit,
       dateWork: datum.format('YYYY-MM-DD'),
-      editId,
+      dataNo: editId ? Number(editId) : undefined,
+      bemerkung: editId ? bemerkung : undefined,
     };
 
     // Externe melden eine Anlieferung an (Auftrag entsteht), Gerätewarte
@@ -232,26 +247,33 @@ function Planner(props) {
       .finally(() => setSaving(false));
   }
 
+  function openExtra() {
+    setExtraUser(selectedUser);
+    setExtraOpen(true);
+  }
+
   function handleExtraSave() {
-    if (!selectedUser || arbeitszeit === undefined || arbeitszeit === null || datum === null || extraNotice === '') {
+    if (!extraUser || extraArbeitszeit === undefined || extraArbeitszeit === null || extraDatum === null || extraNotice === '') {
       myToastError('Bitte alle Felder füllen');
       return;
     }
     const params = {
-      user: selectedUser,
-      arbeitszeit,
-      dateWork: datum.format('YYYY-MM-DD'),
+      user: extraUser,
+      arbeitszeit: extraArbeitszeit,
+      dateWork: extraDatum.format('YYYY-MM-DD'),
       bemerkung: extraNotice,
     };
+    setExtraSaving(true);
     doPutRequestAuth('createExtraEntry', params, props.token)
       .then(() => {
         myToastSuccess('Speichern erfolgreich');
         setExtraOpen(false);
         setExtraNotice('Monatliche Kurzprüfung');
-        setArbeitszeit(undefined);
-        setDatum(dayjs());
+        setExtraArbeitszeit(undefined);
+        setExtraDatum(dayjs());
       })
-      .catch(() => myToastError('Fehler beim Speichern'));
+      .catch(() => myToastError('Fehler beim Speichern'))
+      .finally(() => setExtraSaving(false));
   }
 
   const groupItems = GROUPS.map((group) => {
@@ -335,6 +357,7 @@ function Planner(props) {
           {!readOnlyExtern && (
             <Form.Item label="Arbeitszeit (h)" style={{ flex: 1 }} required>
               <InputNumber
+                aria-label="Arbeitszeit"
                 value={arbeitszeit}
                 onChange={setArbeitszeit}
                 min={0}
@@ -379,7 +402,7 @@ function Planner(props) {
         }}
       >
         {!readOnlyExtern && !editId && (
-          <Button size="large" style={{ flex: 1 }} onClick={() => setExtraOpen(true)}>
+          <Button size="large" style={{ flex: 1 }} onClick={openExtra}>
             Sonstige Aufgabe
           </Button>
         )}
@@ -412,6 +435,7 @@ function Planner(props) {
         open={extraOpen}
         onCancel={() => setExtraOpen(false)}
         onOk={handleExtraSave}
+        confirmLoading={extraSaving}
         okText="Speichern"
         cancelText="Abbrechen"
       >
@@ -421,9 +445,9 @@ function Planner(props) {
               showSearch
               optionFilterProp="label"
               disabled={!isAdmin(props.loggedFunctionNo)}
-              value={selectedUser}
+              value={extraUser}
               options={userOptions}
-              onChange={setSelectedUser}
+              onChange={setExtraUser}
             />
           </Form.Item>
           <Form.Item label="Bemerkung">
@@ -432,8 +456,9 @@ function Planner(props) {
           <Space size={12} style={{ display: 'flex' }} align="start">
             <Form.Item label="Arbeitszeit (h)" style={{ flex: 1, marginBottom: 0 }}>
               <InputNumber
-                value={arbeitszeit}
-                onChange={setArbeitszeit}
+                aria-label="Arbeitszeit der Sonderaufgabe"
+                value={extraArbeitszeit}
+                onChange={setExtraArbeitszeit}
                 min={0}
                 max={10}
                 step={0.5}
@@ -446,8 +471,8 @@ function Planner(props) {
               <DatePicker
                 locale={locale}
                 format={DATE_FORMAT}
-                value={datum}
-                onChange={setDatum}
+                value={extraDatum}
+                onChange={setExtraDatum}
                 allowClear={false}
                 style={{ width: '100%' }}
               />

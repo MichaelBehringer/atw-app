@@ -39,26 +39,36 @@ func GetFunctions() []Function {
 	return functions
 }
 
-func doesUsernameExists(person Person) bool {
-	var doesExist bool
-	ExecuteSQLRow("SELECT COUNT(*) FROM pers WHERE USERNAME=?", person.Username).Scan(&doesExist)
-	return doesExist
+// doesUsernameExists prueft, ob ein ANDERER Benutzer den Namen schon hat.
+// Gross-/Kleinschreibung zaehlt nicht, genau wie beim Login. Vorher wurde auch
+// der eigene Datensatz gefunden - ein Benutzer liess sich dann nur bearbeiten,
+// wenn man ihn gleichzeitig umbenannte.
+func doesUsernameExists(person Person) (bool, error) {
+	var treffer int
+	if scanErr := ExecuteSQLRow("SELECT COUNT(*) FROM pers WHERE UPPER(USERNAME)=UPPER(?) AND PERS_NO<>?", person.Username, person.PersNoKey).Scan(&treffer); scanErr != nil {
+		return false, scanErr
+	}
+	return treffer > 0, nil
 }
 
-func CreateUser(person Person) bool {
-	if doesUsernameExists(person) {
-		return false
+// CreateUser liefert false, wenn der Name vergeben ist.
+func CreateUser(person Person) (bool, error) {
+	exists, checkErr := doesUsernameExists(person)
+	if checkErr != nil || exists {
+		return false, checkErr
 	}
-	ExecuteDDL("INSERT INTO pers (FIRSTNAME, LASTNAME, USERNAME, PASSWORD, FUNCTION_NO, CITY_NO, IS_ACTIVE) VALUES(?,?,?,?,?,?,1)", person.Firstname, person.Lastname, person.Username, person.Password, person.FunctionNo, person.CityNo)
-	return true
+	_, execErr := ExecuteDDLErr("INSERT INTO pers (FIRSTNAME, LASTNAME, USERNAME, PASSWORD, FUNCTION_NO, CITY_NO, IS_ACTIVE) VALUES(?,?,?,?,?,?,1)", person.Firstname, person.Lastname, person.Username, person.Password, person.FunctionNo, person.CityNo)
+	return execErr == nil, execErr
 }
 
-func UpdateUser(person Person) bool {
-	if doesUsernameExists(person) {
-		return false
+// UpdateUser liefert false, wenn ein anderer Benutzer den Namen schon hat.
+func UpdateUser(person Person) (bool, error) {
+	exists, checkErr := doesUsernameExists(person)
+	if checkErr != nil || exists {
+		return false, checkErr
 	}
-	ExecuteDDL("UPDATE pers SET FIRSTNAME = ?, LASTNAME = ?, FUNCTION_NO = ?, CITY_NO = ?, USERNAME = ? where PERS_NO = ?", person.Firstname, person.Lastname, person.FunctionNo, person.CityNo, person.Username, person.PersNoKey)
-	return true
+	_, execErr := ExecuteDDLErr("UPDATE pers SET FIRSTNAME = ?, LASTNAME = ?, FUNCTION_NO = ?, CITY_NO = ?, USERNAME = ? where PERS_NO = ?", person.Firstname, person.Lastname, person.FunctionNo, person.CityNo, person.Username, person.PersNoKey)
+	return execErr == nil, execErr
 }
 
 func DeleteUser(person PersonDelete) {

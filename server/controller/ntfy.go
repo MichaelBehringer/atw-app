@@ -57,8 +57,8 @@ type ntfyPosten struct {
 
 // ntfyPostenListe formatiert die Posten mehrzeilig, mit Anzahl und Nummern:
 //
-//	- 3x Flaschen fuellen: 12, 15, 22
-//	- 1x Masken pruefen: 3
+//   - 3x Flaschen fuellen: 12, 15, 22
+//   - 1x Masken pruefen: 3
 //
 // Die Nummern waren vorher nur als Anzahl in der Nachricht. Fuer die
 // empfangende Feuerwehr ist aber genau die Nummer die Information, die zaehlt -

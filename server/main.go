@@ -161,7 +161,15 @@ func createEntry(c *gin.Context) {
 func saveEntry(c *gin.Context) {
 	var newEntry EntryObj
 	c.BindJSON(&newEntry)
-	SaveEntry(newEntry)
+	if newEntry.DataNo == 0 {
+		c.Status(http.StatusBadRequest)
+		return
+	}
+	if saveErr := SaveEntry(newEntry); saveErr != nil {
+		log.Printf("saveEntry %d: %v", newEntry.DataNo, saveErr)
+		c.Status(http.StatusInternalServerError)
+		return
+	}
 	c.Status(http.StatusOK)
 }
 
@@ -186,7 +194,11 @@ func deleteEntry(c *gin.Context) {
 func updateEntry(c *gin.Context) {
 	var updateEntryObj EntryObj
 	c.BindJSON(&updateEntryObj)
-	UpdateEntry(updateEntryObj)
+	if updateErr := UpdateEntry(updateEntryObj); updateErr != nil {
+		log.Printf("updateEntry %d: %v", updateEntryObj.DataNo, updateErr)
+		c.Status(http.StatusInternalServerError)
+		return
+	}
 	c.Status(http.StatusOK)
 }
 
@@ -207,7 +219,12 @@ func createExtraEntry(c *gin.Context) {
 func createUser(c *gin.Context) {
 	var person Person
 	c.BindJSON(&person)
-	success := CreateUser(person)
+	success, dbErr := CreateUser(person)
+	if dbErr != nil {
+		log.Printf("createUser: %v", dbErr)
+		c.Status(http.StatusInternalServerError)
+		return
+	}
 	if success {
 		c.Status(http.StatusOK)
 	} else {
@@ -218,7 +235,12 @@ func createUser(c *gin.Context) {
 func updateUser(c *gin.Context) {
 	var person Person
 	c.BindJSON(&person)
-	success := UpdateUser(person)
+	success, dbErr := UpdateUser(person)
+	if dbErr != nil {
+		log.Printf("updateUser: %v", dbErr)
+		c.Status(http.StatusInternalServerError)
+		return
+	}
 	if success {
 		c.Status(http.StatusOK)
 	} else {
@@ -250,7 +272,12 @@ func deleteCity(c *gin.Context) {
 func createCity(c *gin.Context) {
 	var city City
 	c.BindJSON(&city)
-	success := CreateCity(city)
+	success, dbErr := CreateCity(city)
+	if dbErr != nil {
+		log.Printf("createCity: %v", dbErr)
+		c.Status(http.StatusInternalServerError)
+		return
+	}
 	if success {
 		c.Status(http.StatusOK)
 	} else {
