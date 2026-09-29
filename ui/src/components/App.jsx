@@ -48,7 +48,7 @@ function App(props) {
         setLoggedFunctionNo(res.data.functionNo);
       })
       .catch((error) => {
-        if (error.response) {
+        if (error.response && error.response.status < 500) {
           // Das Token ist ungültig - etwa aus einer älteren Installation oder
           // nachdem der Signaturschlüssel gewechselt wurde. Ohne diese
           // Behandlung blieb die App für immer im Ladezustand hängen, statt die
@@ -59,7 +59,9 @@ function App(props) {
         } else {
           // Kein response heißt Netzwerkfehler. Das Token ist dann
           // wahrscheinlich in Ordnung, deshalb wird es NICHT verworfen - sonst
-          // würde ein kurzer Funkloch-Moment alle abmelden.
+          // würde ein kurzer Funkloch-Moment alle abmelden. Dasselbe gilt für
+          // 5xx: ein 502 vom Proxy, während der Server neu startet, sagt
+          // nichts über das Token.
           myToastError('Keine Verbindung zum Server.');
           setVerbindungsfehler(true);
         }

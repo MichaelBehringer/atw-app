@@ -125,6 +125,23 @@ describe('App-Shell', () => {
     expect(screen.getByRole('button', { name: 'Erneut versuchen' })).toBeInTheDocument()
   })
 
+  it('behält das Token bei einem 502 vom Proxy', async () => {
+    const removeToken = vi.fn()
+    // So antwortet nginx, solange der Server neu startet.
+    checkTokenResponse.mockRejectedValue({ response: { status: 502 } })
+
+    render(
+      <AppProviders>
+        <HashRouter>
+          <App token="gutes-token" removeToken={removeToken} />
+        </HashRouter>
+      </AppProviders>,
+    )
+
+    expect(await screen.findByText('Keine Verbindung zum Server')).toBeInTheDocument()
+    expect(removeToken).not.toHaveBeenCalled()
+  })
+
   it('lädt nach "Erneut versuchen" die Anmeldedaten', async () => {
     const user = userEvent.setup()
     // Erster Aufruf scheitert, jeder weitere gelingt.
