@@ -19,7 +19,7 @@ services:
       # Benachrichtigungen sind hier bewusst ausdruecklich an.
       ATW_NTFY_ENABLED: "true"
       # Ein Tipp auf die Benachrichtigung oeffnet die App.
-      ATW_APP_URL: "https://ffwemding.dynv6.net:11200/"
+      ATW_APP_URL: "https://ffw.behringer.dev/"
   ui:
     build: ui
     deploy:
@@ -37,3 +37,20 @@ services:
       - ui
       - server
     restart: always
+    networks:
+      # default: erreicht ui und server. edge: darueber reicht der Edge-Proxy
+      # (/root/edge, conf.d/30-ffw.conf) https://ffw.behringer.dev hierher
+      # weiter. Port 11200 bleibt daneben fuer die alte Adresse offen. Der
+      # Alias ist noetig, weil "nginx" im gemeinsamen Netz schon der
+      # Edge-Proxy selbst ist.
+      default: {}
+      edge:
+        aliases:
+          - atw-app
+
+networks:
+  # Angelegt mit "docker network create edge", vorausgesetzt von /root/edge.
+  # external: true heisst, dass dieser Stack es nicht anlegt und beim
+  # "docker compose down" auch nicht entfernt.
+  edge:
+    external: true

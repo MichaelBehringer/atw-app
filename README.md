@@ -118,7 +118,11 @@ docker compose up --build -d
 docker compose logs -f server
 ```
 
-Erreichbar unter `https://ffwemding.dynv6.net:11200`.
+Erreichbar unter `https://ffwemding.dynv6.net:11200` und unter
+`https://ffw.behringer.dev`. Die zweite Adresse bedient der Edge-Proxy in
+`/root/edge` (Port 443, `conf.d/30-ffw.conf`, Zertifikat über
+`/root/edge/certs/cert.sh`) und reicht sie über das Docker-Netz `edge` an den
+nginx dieses Stacks weiter.
 
 ### 5. Prüfen
 
